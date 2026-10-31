@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Автотека">
+<meta name="theme-color" content="#0c0f17">
+<title>Автотека — примеры карточек</title>
+<style>
+  :root { --bg:#0c0f17; --ink:#e9ecf5; --mut:#8b93ab; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:radial-gradient(1200px 600px at 50% -10%, #1b2240 0%, var(--bg) 60%) fixed; color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif; -webkit-tap-highlight-color:transparent; }
+  header { padding:calc(env(safe-area-inset-top) + 22px) 20px 8px; max-width:1100px; margin:0 auto; }
+  h1 { margin:0; font-size:30px; font-weight:900; letter-spacing:.5px; }
+  h1 span { color:#ffae2b; }
+  .lead { color:var(--mut); margin:6px 0 14px; font-size:15px; line-height:1.4; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
+  .chip { font-size:12px; font-weight:700; padding:5px 9px; border-radius:20px; background:#1a2033; color:#cdd3e6; display:inline-flex; align-items:center; gap:6px; }
+  .chip i { width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .lbl { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#69718a; font-weight:800; margin-top:10px; }
+  #tilt { margin:14px 0 0; font:700 14px -apple-system,system-ui,sans-serif; color:#0c0f17; background:#38d1ff; border:0; border-radius:12px; padding:11px 16px; display:none; cursor:pointer; }
+  main { display:grid; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr)); gap:26px 18px; padding:18px 18px calc(env(safe-area-inset-bottom) + 40px); max-width:1100px; margin:0 auto; justify-items:center; }
+  footer { color:#5d6580; font-size:12px; text-align:center; padding:0 20px 40px; line-height:1.5; }
+
+  /* ---------- card ---------- */
+  .card { --mx:.5; --my:.5; --rx:0deg; --ry:0deg; --rc:#9aa3b5; width:290px; aspect-ratio:63/88; perspective:900px; cursor:pointer; touch-action:pan-y; }
+  .inner { position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .6s cubic-bezier(.2,.8,.2,1);
+    transform:rotateX(var(--rx)) rotateY(var(--ry)); }
+  .card.flipped .inner { transform:rotateX(var(--rx)) rotateY(calc(180deg + var(--ry))); }
+  .face { position:absolute; inset:0; border-radius:16px; overflow:hidden; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    box-shadow:0 18px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06); }
+  .back { transform:rotateY(180deg); }
+  .frame { position:absolute; inset:0; padding:10px; display:flex; flex-direction:column; background:linear-gradient(160deg,#232a3d,#151a28); }
+  .frame::before { content:""; position:absolute; inset:5px; border-radius:12px; border:2px solid var(--rc); opacity:.9; pointer-events:none; }
+  .top { display:flex; align-items:center; gap:6px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.8px; padding:4px 6px 7px; position:relative; z-index:2; }
+  .gem { width:12px; height:12px; transform:rotate(45deg); background:var(--rc); box-shadow:0 0 10px var(--rc); border-radius:2px; }
+  .rar { color:var(--rc); }
+  .year { margin-left:auto; font-size:15px; letter-spacing:0; font-weight:900; color:#fff; }
+  .photo { position:relative; height:44%; border-radius:9px; overflow:hidden; background:#0e1220; z-index:1; }
+  .photo img, .photo svg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .photo img { opacity:0; transition:opacity .5s; }
+  .photo img.ok { opacity:1; }
+  .photo .shade { position:absolute; inset:0; background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.55)); }
+  .photo .ctry { position:absolute; left:8px; bottom:7px; font-size:11px; font-weight:800; color:#fff; letter-spacing:.5px; text-transform:uppercase; text-shadow:0 1px 3px #000; }
+  .name { font-size:20px; font-weight:900; line-height:1.1; margin:10px 4px 2px; position:relative; z-index:2; }
+  .sub { font-size:12px; color:var(--mut); margin:0 4px 8px; position:relative; z-index:2; }
+  .stats { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin:0 2px; position:relative; z-index:2; }
+  .st { background:rgba(255,255,255,.055); border-radius:8px; padding:5px 8px; }
+  .st b { display:block; font-size:15px; font-weight:800; }
+  .st small { font-size:10px; color:var(--mut); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+  .prod { margin:8px 4px 0; font-size:11px; color:var(--mut); position:relative; z-index:2; }
+  .prod b { color:#fff; }
+  .bar { height:4px; background:rgba(255,255,255,.08); border-radius:3px; margin-top:4px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:var(--rc); border-radius:3px; }
+  .lam { margin-top:auto; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:#aab2c8; text-align:right; padding:0 4px 2px; position:relative; z-index:2; }
+  .fx, .glare { position:absolute; inset:0; pointer-events:none; border-radius:16px; z-index:5; }
+  .glare { background:radial-gradient(circle at calc(var(--mx)*100%) calc(var(--my)*100%), rgba(255,255,255,.22), transparent 42%); mix-blend-mode:overlay; }
+
+  /* back */
+  .back .frame { padding:18px 16px; gap:10px; }
+  .back h3 { margin:2px 0 0; font-size:17px; font-weight:900; position:relative; z-index:2; }
+  .back p { margin:0; font-size:13.5px; line-height:1.45; color:#d4d9e8; position:relative; z-index:2; }
+  .back .kv { font-size:12px; color:var(--mut); line-height:1.6; position:relative; z-index:2; }
+  .back .kv b { color:#fff; }
+  .back .credit { margin-top:auto; font-size:10.5px; line-height:1.4; color:#6f7894; position:relative; z-index:2; word-break:break-word; }
+  .back .credit a { color:#8fb6ff; }
+  .back .hint { font-size:10px; color:#58607a; text-align:center; position:relative; z-index:2; }
+
+  /* ---------- rarity ---------- */
+  .r-common { --rc:#9aa3b5; } .r-uncommon { --rc:#4cd17a; } .r-rare { --rc:#3d9bff; }
+  .r-epic { --rc:#b061ff; } .r-legend { --rc:#ffae2b; } .r-unique { --rc:#ff4f6d; }
+  .r-unique .frame::before { border:2px solid transparent; background:conic-gradient(from var(--ang,0deg), #ff4f6d, #ffae2b, #ffe14d, #4cd17a, #38d1ff, #b061ff, #ff4f6d) border-box;
+    -webkit-mask:linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; animation:spin 4s linear infinite; }
+  @property --ang { syntax:'<angle>'; inherits:false; initial-value:0deg; }
+  @keyframes spin { to { --ang:360deg; } }
+
+  /* ---------- lamination ---------- */
+  .l-matte .photo img { filter:saturate(.8) contrast(.95); }
+  .l-matte .glare { opacity:.35; }
+  .l-gloss .fx { background:radial-gradient(circle at calc(var(--mx)*100%) calc(var(--my)*100%), rgba(255,255,255,.55), transparent 38%),
+      linear-gradient(115deg, transparent 35%, rgba(255,255,255,.18) 48%, transparent 60%); background-size:100% 100%, 250% 250%;
+    background-position:0 0, calc(var(--mx)*100%) calc(var(--my)*100%); mix-blend-mode:soft-light; }
+  .l-holo .fx, .l-num .fx { background:
+      repeating-linear-gradient(115deg, #ff2d95 0%, #ffcf3a 6%, #3dffb0 12%, #38c8ff 18%, #9a4dff 24%, #ff2d95 30%),
+      repeating-radial-gradient(circle at 30% 30%, rgba(255,255,255,.18) 0 1px, transparent 1px 7px);
+    background-size:400% 400%, 100% 100%; background-position:calc(var(--mx)*100%) calc(var(--my)*100%), 0 0;
+    mix-blend-mode:color-dodge; opacity:.42; }
+  .l-holo .frame, .l-num .frame { background:linear-gradient(160deg,#2a2f4a,#161a2c); }
+  .l-chrome .frame { background:linear-gradient(135deg,#7d8597 0%,#e9edf5 22%,#8a92a5 40%,#f6f8fc 58%,#6c7385 78%,#c9ced9 100%); color:#141821; }
+  .l-chrome .sub, .l-chrome .st small, .l-chrome .prod, .l-chrome .lam { color:#3c4354; }
+  .l-chrome .st { background:rgba(0,0,0,.12); } .l-chrome .year, .l-chrome .prod b { color:#0b0e14; }
+  .l-chrome .photo img { filter:contrast(1.1) saturate(.75); }
+  .l-chrome .fx { background:linear-gradient(110deg, transparent 20%, rgba(255,255,255,.85) 32%, transparent 42%, transparent 58%, rgba(255,255,255,.6) 66%, transparent 76%);
+    background-size:300% 300%; background-position:calc(var(--mx)*100%) calc(var(--my)*100%); mix-blend-mode:overlay; }
+  .l-carbon .frame { background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.035) 0 3px, transparent 3px 6px),
+      repeating-linear-gradient(-45deg, rgba(0,0,0,.35) 0 3px, transparent 3px 6px), #17191d; }
+  .l-carbon .fx { background:linear-gradient(115deg, transparent 30%, rgba(255,255,255,.28) 45%, transparent 58%);
+    background-size:300% 300%; background-position:calc(var(--mx)*100%) calc(var(--my)*100%); mix-blend-mode:screen; }
+  .l-gold .frame { background:linear-gradient(135deg,#6b4a0e 0%,#e8b93a 20%,#fff1a8 38%,#c9922a 55%,#ffe27a 72%,#8a6214 100%); color:#2a1a00; }
+  .l-gold .sub, .l-gold .st small, .l-gold .prod, .l-gold .lam { color:#5a3e08; }
+  .l-gold .st { background:rgba(60,35,0,.16); } .l-gold .year, .l-gold .prod b { color:#2a1a00; }
+  .l-gold .fx { background:
+      radial-gradient(circle at calc(var(--mx)*100%) calc(var(--my)*100%), rgba(255,250,210,.8), transparent 35%),
+      repeating-radial-gradient(circle at 70% 20%, rgba(255,240,170,.55) 0 1px, transparent 1px 5px);
+    mix-blend-mode:overlay; }
+  .l-retro .frame { background:#e9dcbd; color:#3b2a14; font-family:Georgia,"Times New Roman",serif; box-shadow:inset 0 0 40px rgba(110,70,20,.45); }
+  .l-retro .frame::after { content:""; position:absolute; inset:0; background:repeating-radial-gradient(circle at 20% 30%, rgba(90,60,20,.06) 0 1px, transparent 1px 4px); pointer-events:none; }
+  .l-retro .sub, .l-retro .st small, .l-retro .prod, .l-retro .lam, .l-retro .back p, .l-retro .kv { color:#6b5232; }
+  .l-retro .st { background:rgba(90,60,20,.1); } .l-retro .year, .l-retro .prod b, .l-retro .kv b { color:#3b2a14; }
+  .l-retro .photo img, .l-retro .photo svg { filter:sepia(.9) contrast(1.05) brightness(.92); }
+  .l-retro .glare { opacity:.3; }
+  .stamp { position:absolute; right:16px; top:39%; z-index:6; transform:rotate(-8deg); font:900 13px -apple-system,system-ui,sans-serif; letter-spacing:1px;
+    padding:4px 8px; border-radius:6px; color:#fff; background:linear-gradient(135deg,#ff2d95,#ffcf3a,#3dffb0,#38c8ff,#9a4dff); box-shadow:0 2px 10px rgba(0,0,0,.5); }
+</style>
+</head>
+<body>
+<header>
+  <h1>АВТО<span>ТЕКА</span></h1>
+  <p class="lead">Примеры карточек. Нажмите на карточку, чтобы перевернуть её. Ведите по ней пальцем или наклоняйте телефон: ламинирование переливается.</p>
+  <div class="lbl">Редкость: чем меньше машин выпустили на самом деле, тем реже карточка</div>
+  <div class="chips">
+    <span class="chip"><i style="background:#9aa3b5"></i>Обычная</span><span class="chip"><i style="background:#4cd17a"></i>Необычная</span>
+    <span class="chip"><i style="background:#3d9bff"></i>Редкая</span><span class="chip"><i style="background:#b061ff"></i>Эпическая</span>
+    <span class="chip"><i style="background:#ffae2b"></i>Легендарная</span><span class="chip"><i style="background:#ff4f6d"></i>Уникальная</span>
+  </div>
+  <div class="lbl">Ламинирование: выпадает случайно и не зависит от редкости</div>
+  <div class="chips">
+    <span class="chip">Матовая</span><span class="chip">Глянец</span><span class="chip">Голография</span><span class="chip">Хром</span>
+    <span class="chip">Карбон</span><span class="chip">Ретро-печать</span><span class="chip">Золотая фольга</span><span class="chip">Номерная</span>
+  </div>
+  <button id="tilt">📱 Включить эффект наклона</button>
+</header>
+<main id="grid"></main>
+<footer>Фотографии загружаются из Википедии (Wikimedia Commons) под свободными лицензиями, авторы указаны на обороте карточек.<br>Если фото не загрузилось, показывается рисунок силуэта. Проект не связан с производителями автомобилей.</footer>
+
+<script>
+(() => {
+'use strict';
+const RAR = { common:'Обычная', uncommon:'Необычная', rare:'Редкая', epic:'Эпическая', legend:'Легендарная', unique:'Уникальная' };
+const LAM = { matte:'Матовая', gloss:'Глянец', holo:'Голография', chrome:'Хром', carbon:'Карбон', retro:'Ретро-печать', gold:'Золотая фольга', num:'Номерная' };
+const CARS = [
+  { name:'Benz Patent-Motorwagen', maker:'Benz & Cie', country:'Германия', year:1886, wiki:'Benz_Patent-Motorwagen', body:'veteran3', color:'#3a2a1c',
+    rar:'legend', lam:'retro', hp:'0,75 л.с.', top:'16 км/ч', acc:'—', mass:'≈ 265 кг', prod:25, prodTxt:'≈ 25 шт.',
+    fact:'Первый в мире серийный автомобиль с бензиновым двигателем. В 1888 году Берта Бенц тайком от мужа проехала на нём больше 100 км, а топливо (лигроин) покупала в аптеке.' },
+  { name:'Ford Model T', maker:'Ford', country:'США', year:1908, wiki:'Ford_Model_T', body:'veteran', color:'#1b1b1b',
+    rar:'common', lam:'retro', hp:'20 л.с.', top:'≈ 70 км/ч', acc:'—', mass:'≈ 540 кг', prod:15000000, prodTxt:'≈ 15 млн',
+    fact:'Машина, которая посадила мир за руль. С 1913 года её собирали на конвейере: сборка одной машины сократилась с 12 часов до полутора.' },
+  { name:'ВАЗ-2101 «Жигули»', maker:'АвтоВАЗ', country:'СССР', year:1970, wiki:'VAZ-2101', body:'sedan', color:'#c9473a',
+    rar:'common', lam:'matte', hp:'64 л.с.', top:'142 км/ч', acc:'22 с', mass:'955 кг', prod:2700000, prodTxt:'≈ 2,7 млн',
+    fact:'Легендарная «Копейка». Создана на основе Fiat 124 — «Автомобиля года» 1967-го, — но переделана под советские дороги и морозы: изменений набралось больше восьмисот.' },
+  { name:'ГАЗ-21 «Волга»', maker:'ГАЗ', country:'СССР', year:1956, wiki:'GAZ-21', body:'sedan50', color:'#e8e2d0',
+    rar:'uncommon', lam:'holo', hp:'70 л.с.', top:'130 км/ч', acc:'34 с', mass:'1460 кг', prod:639000, prodTxt:'≈ 639 тыс.',
+    fact:'Символ советского достатка: купить её частнику было почти невозможно. На капоте ранних машин — фигурка прыгающего оленя.' },
+  { name:'Porsche 911', maker:'Porsche', country:'Германия', year:1964, wiki:'Porsche_911_(classic)', body:'coupe911', color:'#d8b23a',
+    rar:'rare', lam:'gloss', hp:'130 л.с.', top:'210 км/ч', acc:'9,1 с', mass:'1080 кг', prod:80000, prodTxt:'≈ 80 тыс. (1964–1973)',
+    fact:'Сначала модель называлась 901, но Peugeot заявила права на трёхзначные названия с нулём посередине. Так появился «девятьсот одиннадцатый».' },
+  { name:'Mercedes-Benz 300 SL', maker:'Mercedes-Benz', country:'Германия', year:1954, wiki:'Mercedes-Benz_300_SL', body:'coupe', color:'#b9bec6',
+    rar:'epic', lam:'gold', hp:'215 л.с.', top:'до 260 км/ч', acc:'≈ 9 с', mass:'1295 кг', prod:1400, prodTxt:'≈ 1400 купе',
+    fact:'Двери «крыло чайки» придумали не ради красоты: высокий трубчатый каркас не оставлял места для обычных дверей.' },
+  { name:'Lamborghini Miura', maker:'Lamborghini', country:'Италия', year:1966, wiki:'Lamborghini_Miura', body:'mid', color:'#f08a1c',
+    rar:'epic', lam:'chrome', hp:'350 л.с.', top:'≈ 280 км/ч', acc:'6,7 с', mass:'≈ 980 кг', prod:764, prodTxt:'≈ 764 шт.',
+    fact:'Её часто называют первым суперкаром: V12 стоит поперёк прямо за спинами водителя и пассажира. Инженеры строили её по вечерам, втайне от Ферруччо Ламборгини.' },
+  { name:'Bugatti Chiron', maker:'Bugatti', country:'Франция', year:2016, wiki:'Bugatti_Chiron', body:'hyper', color:'#1d3f8a',
+    rar:'epic', lam:'carbon', hp:'1500 л.с.', top:'420 км/ч*', acc:'2,4 с', mass:'1995 кг', prod:500, prodTxt:'500 шт.',
+    fact:'Двигатель W16 с четырьмя турбинами. В 2019 году доработанный Chiron первым из серийных машин превысил 300 миль в час — 490 км/ч. *Скорость ограничена электроникой.' },
+  { name:'Ferrari 250 GTO', maker:'Ferrari', country:'Италия', year:1962, wiki:'Ferrari_250_GTO', body:'coupe', color:'#c8102e',
+    rar:'legend', lam:'num', serial:'№ 07 / 100', hp:'300 л.с.', top:'≈ 280 км/ч', acc:'≈ 5,8 с', mass:'≈ 880 кг', prod:36, prodTxt:'36 шт.',
+    fact:'Энцо Феррари лично одобрял каждого покупателя. Сегодня это одна из самых дорогих машин в мире: в 2018 году экземпляр ушёл с аукциона за 48 млн долларов.' },
+  { name:'Mercedes-Benz 300 SLR «Уленгаут»', maker:'Mercedes-Benz', country:'Германия', year:1955, wiki:'Mercedes-Benz_300_SLR', body:'coupe', color:'#c3c7cd',
+    rar:'unique', lam:'holo', hp:'302 л.с.', top:'≈ 290 км/ч', acc:'—', mass:'—', prod:2, prodTxt:'2 шт.',
+    fact:'Гоночная машина с крышей, построенная для дорог. Главный инженер Рудольф Уленгаут ездил на ней на работу. В 2022 году её продали за 135 млн евро — дороже любого автомобиля в истории.' },
+];
+
+// ---------- silhouettes (fallback art) ----------
+const BODY = {
+  veteran3:'M30 52 L40 30 L95 30 L105 22 L120 22 L118 32 L150 34 L160 52 Z',
+  veteran:'M22 56 L28 40 L62 40 L66 22 L118 22 L122 38 L165 42 L176 56 Z',
+  sedan:'M14 58 L18 46 L52 42 L68 26 L130 26 L146 42 L182 46 L186 58 Z',
+  sedan50:'M12 58 L16 44 L50 40 L70 24 L128 24 L150 40 L184 44 L188 58 Q100 62 12 58 Z',
+  coupe911:'M14 58 L18 46 L58 40 L84 26 L120 26 L162 44 L186 50 L186 58 Z',
+  coupe:'M10 58 L14 48 L70 42 L96 28 L126 28 L148 42 L186 48 L190 58 Z',
+  mid:'M10 58 L12 50 L60 44 L86 30 L124 30 L152 42 L190 48 L190 58 Z',
+  hyper:'M8 58 L12 48 L56 44 L84 30 L128 30 L160 42 L192 48 L192 58 Z',
+};
+const WHEELS = { veteran3:[[48,54,9],[146,54,9]], veteran:[[46,56,11],[150,56,11]] };
+function silhouette(c) {
+  const w = WHEELS[c.body] || [[50,58,11],[150,58,11]];
+  const wheels = w.map(([x,y,r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#0b0d12"/><circle cx="${x}" cy="${y}" r="${r*.45}" fill="#7d8597"/>`).join('');
+  return `<svg viewBox="0 0 200 80" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="g${c.year}${c.body}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a3352"/><stop offset="1" stop-color="#0e1220"/></linearGradient></defs>
+    <rect width="200" height="80" fill="url(#g${c.year}${c.body})"/><rect y="66" width="200" height="14" fill="#141a2b"/>
+    <path d="${BODY[c.body]}" fill="${c.color}" stroke="rgba(255,255,255,.25)" stroke-width="1"/>${wheels}</svg>`;
+}
+
+// ---------- photos from Wikipedia / Commons ----------
+const cache = {};
+async function loadPhoto(c, imgEl, creditEl) {
+  try {
+    const r = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(c.wiki) + '?redirect=true');
+    if (!r.ok) throw 0;
+    const j = await r.json();
+    let src = (j.thumbnail && j.thumbnail.source) || '';
+    if (!src || src.includes('/wikipedia/en/')) throw 0;               // only free Commons images
+    src = src.replace(/\/(\d+)px-/, '/800px-');
+    const m = src.match(/\/commons\/thumb\/[0-9a-f]\/[0-9a-f]{2}\/([^/]+)\//) || src.match(/\/commons\/[0-9a-f]\/[0-9a-f]{2}\/([^/]+)$/);
+    imgEl.onload = () => imgEl.classList.add('ok');
+    imgEl.onerror = () => { if (/\/800px-/.test(imgEl.src) && j.thumbnail) imgEl.src = j.thumbnail.source; };
+    imgEl.src = src;
+    if (m) {
+      const file = decodeURIComponent(m[1]);
+      const page = 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(file);
+      creditEl.innerHTML = 'Фото: Wikimedia Commons, <a href="' + page + '" target="_blank" rel="noopener">страница файла</a>';
+      const q = await fetch('https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=extmetadata&titles=File:' + encodeURIComponent(file));
+      const qj = await q.json(); const pg = Object.values(qj.query.pages)[0];
+      const md = pg.imageinfo && pg.imageinfo[0].extmetadata;
+      if (md) {
+        const strip = s => (s || '').replace(/<[^>]*>/g, '').trim().slice(0, 80);
+        const who = strip(md.Artist && md.Artist.value), lic = strip(md.LicenseShortName && md.LicenseShortName.value);
+        creditEl.innerHTML = 'Фото: ' + (who || 'автор не указан') + (lic ? ', ' + lic : '') + ' · <a href="' + page + '" target="_blank" rel="noopener">Wikimedia Commons</a>';
+      }
+    }
+  } catch (e) { /* keep silhouette */ }
+}
+
+// ---------- build cards ----------
+const grid = document.getElementById('grid');
+const maxLog = Math.log10(20000000);
+for (const c of CARS) {
+  const el = document.createElement('div');
+  el.className = 'card r-' + c.rar + ' l-' + c.lam;
+  const pct = Math.max(3, Math.log10(c.prod) / maxLog * 100);
+  el.innerHTML = `
+  <div class="inner">
+    <div class="face front"><div class="frame">
+      <div class="top"><span class="gem"></span><span class="rar">${RAR[c.rar]}</span><span class="year">${c.year}</span></div>
+      <div class="photo">${silhouette(c)}<img alt=""><div class="shade"></div><span class="ctry">${c.country}</span></div>
+      <div class="name">${c.name}</div>
+      <div class="sub">${c.maker}</div>
+      <div class="stats">
+        <div class="st"><small>Мощность</small><b>${c.hp}</b></div><div class="st"><small>Макс. скорость</small><b>${c.top}</b></div>
+        <div class="st"><small>0–100 км/ч</small><b>${c.acc}</b></div><div class="st"><small>Масса</small><b>${c.mass}</b></div>
+      </div>
+      <div class="prod">Выпущено: <b>${c.prodTxt}</b><div class="bar"><i style="width:${pct}%"></i></div></div>
+      <div class="lam">${LAM[c.lam]}${c.serial ? ' · ' + c.serial : ''}</div>
+    </div>${c.serial ? `<div class="stamp">${c.serial}</div>` : ''}<div class="fx"></div><div class="glare"></div></div>
+    <div class="face back"><div class="frame">
+      <div class="top"><span class="gem"></span><span class="rar">${RAR[c.rar]}</span><span class="year">${c.year}</span></div>
+      <h3>${c.name}</h3>
+      <p>${c.fact}</p>
+      <div class="kv">Страна: <b>${c.country}</b><br>Производитель: <b>${c.maker}</b><br>Тираж: <b>${c.prodTxt}</b><br>Ламинирование: <b>${LAM[c.lam]}</b></div>
+      <div class="credit">Фото не загрузилось: показан рисунок.</div>
+      <div class="hint">Нажмите, чтобы перевернуть</div>
+    </div><div class="fx"></div><div class="glare"></div></div>
+  </div>`;
+  grid.appendChild(el);
+  loadPhoto(c, el.querySelector('img'), el.querySelector('.credit'));
+
+  // pointer tilt
+  const set = (mx, my) => {
+    el.style.setProperty('--mx', mx.toFixed(3)); el.style.setProperty('--my', my.toFixed(3));
+    el.style.setProperty('--ry', ((mx - .5) * 18).toFixed(2) + 'deg'); el.style.setProperty('--rx', ((.5 - my) * 14).toFixed(2) + 'deg');
+  };
+  el.addEventListener('pointermove', e => { const r = el.getBoundingClientRect(); set((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); el.dataset.p = '1'; });
+  el.addEventListener('pointerleave', () => { delete el.dataset.p; set(.5, .5); });
+  el.addEventListener('click', e => { if (e.target.closest('a')) return; el.classList.toggle('flipped'); });
+}
+
+// ---------- device tilt ----------
+const btn = document.getElementById('tilt');
+function onOrient(e) {
+  const g = Math.max(-35, Math.min(35, e.gamma || 0)), b = Math.max(10, Math.min(80, e.beta || 45));
+  const mx = (g + 35) / 70, my = (b - 10) / 70;
+  for (const el of grid.children) {
+    if (el.dataset.p) continue;
+    el.style.setProperty('--mx', mx.toFixed(3)); el.style.setProperty('--my', my.toFixed(3));
+    el.style.setProperty('--ry', ((mx - .5) * 16).toFixed(2) + 'deg'); el.style.setProperty('--rx', ((.5 - my) * 10).toFixed(2) + 'deg');
+  }
+}
+if (window.DeviceOrientationEvent) {
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    btn.style.display = 'inline-block';
+    btn.addEventListener('click', async () => {
+      try { const p = await DeviceOrientationEvent.requestPermission(); if (p === 'granted') { window.addEventListener('deviceorientation', onOrient); btn.style.display = 'none'; } }
+      catch (e) { btn.textContent = 'Наклон недоступен — водите пальцем по карточке'; }
+    });
+  } else window.addEventListener('deviceorientation', onOrient);
+}
+})();
+</script>
+</body>
+</html>
