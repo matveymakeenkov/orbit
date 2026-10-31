@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Орбита">
+<meta name="theme-color" content="#05060f">
+<title>Орбита</title>
+<style>
+  html,body{margin:0;height:100%;background:#05060f;overflow:hidden;touch-action:none;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Rounded",system-ui,sans-serif;color:#fff}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+  #safe{position:fixed;left:0;top:0;width:0;height:0;padding-top:env(safe-area-inset-top);visibility:hidden;pointer-events:none}
+  #snd{position:fixed;right:calc(env(safe-area-inset-right) + 14px);top:calc(env(safe-area-inset-top) + 12px);
+    width:44px;height:44px;border-radius:22px;border:1px solid rgba(160,180,255,.25);background:rgba(20,26,70,.45);
+    color:#cfd8ff;font-size:20px;line-height:42px;text-align:center;padding:0;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="safe"></div>
+<button id="snd" aria-label="Звук">🔊</button>
+<script>
+(() => {
+  const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  const safeEl = document.getElementById('safe'), sndBtn = document.getElementById('snd');
+  const TAU = Math.PI * 2;
+
+  // ---------- layout ----------
+  let W = 0, H = 0, cx = 0, cy = 0, R = [0, 0], PR = 8, SAFE = 0, M = 0, bgStars = [];
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    M = Math.min(W, H * 0.8);
+    cx = W / 2; cy = H * 0.54;
+    R = [M * 0.21, M * 0.39];
+    PR = Math.max(6, M * 0.022);
+    SAFE = parseFloat(getComputedStyle(safeEl).paddingTop) || 0;
+    bgStars = [];
+    const n = Math.round(W * H / 2400);
+    for (let i = 0; i < n; i++) bgStars.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.1 + 0.3, p: Math.random() * TAU, s: 0.5 + Math.random() * 2 });
+    if (state !== 'play') pR = R[pO];
+  }
+
+  // ---------- storage (optional) ----------
+  function loadNum(k) { try { return +localStorage.getItem(k) || 0; } catch (e) { return 0; } }
+  function saveNum(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
+
+  // ---------- sound ----------
+  let ac = null, muted = loadNum('orbit_mute') === 1;
+  function unlock() {
+    try {
+      if (!ac) { const A = window.AudioContext || window.webkitAudioContext; if (A) ac = new A(); }
+      if (ac && ac.state === 'suspended') ac.resume().catch(() => {});
+    } catch (e) { ac = null; }
+  }
+  function tone(f, d, type, v, f2) {
+    if (!ac || muted) return;
+    try {
+      const t0 = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+      o.type = type || 'sine';
+      o.frequency.setValueAtTime(f, t0);
+      if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + d);
+      g.gain.setValueAtTime(v || 0.12, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+      o.connect(g); g.connect(ac.destination);
+      o.start(t0); o.stop(t0 + d + 0.03);
+    } catch (e) {}
+  }
+  function boom() {
+    if (!ac || muted) return;
+    try {
+      const t0 = ac.currentTime, len = Math.floor(ac.sampleRate * 0.6);
+      const buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+      const src = ac.createBufferSource(), lp = ac.createBiquadFilter(), g = ac.createGain();
+      src.buffer = buf; lp.type = 'lowpass'; lp.frequency.setValueAtTime(1400, t0); lp.frequency.exponentialRampToValueAtTime(120, t0 + 0.6);
+      g.gain.setValueAtTime(0.35, t0);
+      src.connect(lp); lp.connect(g); g.connect(ac.destination); src.start(t0);
+    } catch (e) {}
+    tone(200, 0.5, 'sawtooth', 0.08, 40);
+  }
+  function setSndIcon() { sndBtn.textContent = muted ? '🔇' : '🔊'; }
+  setSndIcon();
+  sndBtn.addEventListener('pointerdown', e => { e.stopPropagation(); });
+  sndBtn.addEventListener('click', e => {
+    e.stopPropagation(); unlock(); muted = !muted; saveNum('orbit_mute', muted ? 1 : 0); setSndIcon();
+    if (!muted) tone(660, 0.08, 'triangle', 0.1);
+  });
+
+  // ---------- state ----------
+  let state = 'menu', paused = false, best = loadNum('orbit_best');
+  let t = 0, playT = 0, score = 0, mult = 1, lastStarT = -9;
+  let w = 1.7, pA = -Math.PI / 2, pO = 1, pR = 0;
+  let rocks = [], stars = [], parts = [], trail = [], floats = [];
+  let rockT = 0, starT = 0, shake = 0, overT = 0, newBest = false, flash = 0, demoT = 0, pulse = 0;
+
+  function reset() {
+    score = 0; mult = 1; lastStarT = -9; playT = 0; w = 1.7;
+    pA = -Math.PI / 2; pO = 1; pR = R[1];
+    rocks = []; stars = []; parts = []; trail = []; floats = [];
+    rockT = 1.0; starT = 0.3; newBest = false; paused = false; flash = 0;
+  }
+
+  const angDiff = (a, b) => { let d = Math.abs(a - b) % TAU; return d > Math.PI ? TAU - d : d; };
+  const pos = (a, r) => [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+
+  function spawnRock() {
+    const wr = w * 0.55, rel = w + wr, minSep = 0.42 * rel + 0.38;
+    for (let k = 0; k < 8; k++) {
+      const o = Math.random() < 0.5 ? 0 : 1;
+      const a = pA + Math.PI + (Math.random() * 2 - 1) * 0.7;
+      let ok = true;
+      for (const r of rocks) {
+        const d = angDiff(r.a, a);
+        if ((r.o !== o && d < minSep) || (r.o === o && d < 0.35)) { ok = false; break; }
+      }
+      if (!ok) continue;
+      const n = 7 + (Math.random() * 4 | 0), verts = [];
+      for (let i = 0; i < n; i++) verts.push(0.72 + Math.random() * 0.38);
+      rocks.push({ o, a, size: PR * (1.1 + Math.random() * 0.5), verts, rot: Math.random() * TAU, vr: (Math.random() * 2 - 1) * 2.2, age: 0, life: (1.75 * Math.PI) / rel });
+      return;
+    }
+  }
+  function spawnStar() {
+    for (let k = 0; k < 10; k++) {
+      const o = Math.random() < 0.5 ? 0 : 1;
+      const a = pA + Math.PI * (0.7 + Math.random() * 0.9);
+      let ok = true;
+      for (const r of rocks) if (r.o === o && angDiff(r.a, a) < 0.5) { ok = false; break; }
+      if (ok) for (const s of stars) if (angDiff(s.a, a) < 0.5) { ok = false; break; }
+      if (ok) { stars.push({ o, a, age: 0, ph: Math.random() * TAU }); return; }
+    }
+  }
+
+  function burst(x, y, n, c, sp, sz) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * TAU, v = sp * (0.3 + Math.random() * 0.7);
+      const life = 0.4 + Math.random() * 0.6;
+      parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life, max: life, c, r: (sz || 2.2) * (0.5 + Math.random()) });
+    }
+  }
+
+  function die(x, y) {
+    state = 'over'; overT = t; shake = 14; flash = 1;
+    burst(x, y, 46, '#7ff6ff', 280); burst(x, y, 22, '#ffffff', 180); burst(x, y, 16, '#ff7a8a', 220);
+    boom();
+    if (score > best) { best = score; saveNum('orbit_best', best); newBest = true; }
+  }
+
+  // ---------- update ----------
+  function update(dt) {
+    t += dt;
+    shake = Math.max(0, shake - dt * 40);
+    flash = Math.max(0, flash - dt * 2.5);
+    pulse = Math.max(0, pulse - dt * 3);
+
+    if (state === 'play' && !paused) {
+      playT += dt;
+      w = 1.7 + Math.min(1.6, playT * 0.018 + score * 0.025);
+      pA += w * dt;
+      const wr = w * 0.55;
+
+      rockT -= dt;
+      if (rockT <= 0) { spawnRock(); rockT = Math.max(0.42, 1.15 - score * 0.015 - playT * 0.006) * (0.7 + Math.random() * 0.6); }
+      starT -= dt;
+      if (starT <= 0 && stars.length < 2) { spawnStar(); starT = 0.9; }
+
+      pR += (R[pO] - pR) * Math.min(1, dt * 16);
+      const [px, py] = pos(pA, pR);
+
+      for (let i = rocks.length - 1; i >= 0; i--) {
+        const r = rocks[i];
+        r.a -= wr * dt; r.rot += r.vr * dt; r.age += dt;
+        if (r.age > r.life) { rocks.splice(i, 1); continue; }
+        const al = Math.min(1, r.age / 0.35) * Math.min(1, (r.life - r.age) / 0.35);
+        if (al > 0.6) {
+          const [rx, ry] = pos(r.a, R[r.o]);
+          if (Math.hypot(rx - px, ry - py) < PR * 0.85 + r.size * 0.78) { die(px, py); return; }
+        }
+      }
+      for (let i = stars.length - 1; i >= 0; i--) {
+        const s = stars[i]; s.age += dt;
+        if (s.age > 9) { stars.splice(i, 1); continue; }
+        const [sx, sy] = pos(s.a, R[s.o]);
+        if (Math.hypot(sx - px, sy - py) < PR + PR * 1.3) {
+          mult = (t - lastStarT < 2.2) ? Math.min(mult + 1, 5) : 1;
+          lastStarT = t; score += mult; pulse = 1;
+          stars.splice(i, 1);
+          burst(sx, sy, 18, '#ffe08a', 170, 2);
+          floats.push({ x: sx, y: sy, txt: '+' + mult, age: 0 });
+          tone(780 + mult * 120, 0.14, 'sine', 0.13, 1300 + mult * 160);
+          starT = Math.min(starT, 0.35);
+        }
+      }
+      trail.push([px, py]); if (trail.length > 18) trail.shift();
+    } else if (state === 'menu') {
+      pA += 1.3 * dt;
+      demoT -= dt; if (demoT <= 0) { pO = 1 - pO; demoT = 0.9 + Math.random() * 1.2; }
+      pR += (R[pO] - pR) * Math.min(1, dt * 16);
+      trail.push(pos(pA, pR)); if (trail.length > 18) trail.shift();
+    } else if (state === 'over') {
+      const wr = w * 0.55;
+      for (const r of rocks) { r.a -= wr * dt * 0.12; r.rot += r.vr * dt * 0.2; }
+      if (trail.length) trail.shift();
+    }
+
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i]; p.life -= dt;
+      if (p.life <= 0) { parts.splice(i, 1); continue; }
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 2.2; p.vy *= 1 - dt * 2.2;
+    }
+    for (let i = floats.length - 1; i >= 0; i--) { floats[i].age += dt; if (floats[i].age > 0.9) floats.splice(i, 1); }
+  }
+
+  // ---------- draw ----------
+  function glow(x, y, r, c) {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, c); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+  }
+  function starPath(x, y, r, rot) {
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) { const a = rot + i * Math.PI / 4, rr = i % 2 ? r * 0.38 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+    ctx.closePath();
+  }
+  function text(s, x, y, size, color, weight, alpha) {
+    ctx.globalAlpha = alpha == null ? 1 : alpha;
+    ctx.font = (weight || 700) + ' ' + size + 'px -apple-system,BlinkMacSystemFont,system-ui,sans-serif';
+    ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(s, x, y); ctx.globalAlpha = 1;
+  }
+
+  function draw() {
+    const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.75);
+    bg.addColorStop(0, '#151b48'); bg.addColorStop(0.5, '#0a0d27'); bg.addColorStop(1, '#04050d');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    ctx.save();
+    if (shake > 0) ctx.translate((Math.random() * 2 - 1) * shake, (Math.random() * 2 - 1) * shake);
+
+    ctx.fillStyle = '#cfd8ff';
+    for (const s of bgStars) { ctx.globalAlpha = 0.3 + 0.35 * Math.sin(t * s.s + s.p); ctx.fillRect(s.x, s.y, s.r * 2, s.r * 2); }
+    ctx.globalAlpha = 1;
+
+    // orbits
+    for (let i = 0; i < 2; i++) {
+      ctx.beginPath(); ctx.arc(cx, cy, R[i], 0, TAU);
+      const on = i === pO;
+      ctx.strokeStyle = on ? 'rgba(140,175,255,0.42)' : 'rgba(140,175,255,0.15)';
+      ctx.lineWidth = on ? 2.5 : 1.5;
+      ctx.setLineDash([4, 9]); ctx.lineDashOffset = -t * 18 * (i ? 1 : -1);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // planet
+    const pr = R[0] * 0.46, tilt = -0.35;
+    glow(cx, cy, pr * 2.4, 'rgba(150,90,255,0.30)');
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,200,240,0.45)';
+    ctx.beginPath(); ctx.ellipse(cx, cy, pr * 1.65, pr * 0.42, tilt, Math.PI, TAU); ctx.stroke();
+    const pg = ctx.createRadialGradient(cx - pr * 0.35, cy - pr * 0.4, pr * 0.1, cx, cy, pr);
+    pg.addColorStop(0, '#ffb8e8'); pg.addColorStop(0.5, '#b25cff'); pg.addColorStop(1, '#3a1a7a');
+    ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(cx, cy, pr, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,200,240,0.7)';
+    ctx.beginPath(); ctx.ellipse(cx, cy, pr * 1.65, pr * 0.42, tilt, 0, Math.PI); ctx.stroke();
+
+    // collectibles
+    for (const s of stars) {
+      const [x, y] = pos(s.a, R[s.o]);
+      const al = Math.min(1, s.age / 0.3) * Math.min(1, (9 - s.age) / 0.5);
+      const r = PR * 1.25 * (1 + 0.12 * Math.sin(t * 6 + s.ph));
+      ctx.globalAlpha = al;
+      glow(x, y, r * 3, 'rgba(255,214,110,0.45)');
+      starPath(x, y, r, t * 1.5 + s.ph); ctx.fillStyle = '#ffe08a'; ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // rocks
+    for (const r of rocks) {
+      const [x, y] = pos(r.a, R[r.o]);
+      const al = Math.min(1, r.age / 0.35) * Math.min(1, (r.life - r.age) / 0.35);
+      ctx.globalAlpha = Math.max(0, al);
+      glow(x, y, r.size * 2.4, 'rgba(255,80,100,0.28)');
+      ctx.beginPath();
+      const n = r.verts.length;
+      for (let i = 0; i < n; i++) { const a = r.rot + i / n * TAU, rr = r.size * r.verts[i]; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+      ctx.closePath();
+      ctx.fillStyle = '#d93c55'; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = '#ff9a8a'; ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // player
+    if (state !== 'over') {
+      for (let i = 0; i < trail.length; i++) {
+        const k = i / trail.length;
+        ctx.globalAlpha = k * 0.45; ctx.fillStyle = '#6ff7ff';
+        ctx.beginPath(); ctx.arc(trail[i][0], trail[i][1], PR * k * 0.9, 0, TAU); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      const [px, py] = pos(pA, pR);
+      glow(px, py, PR * 3.4, 'rgba(110,245,255,0.5)');
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(px, py, PR, 0, TAU); ctx.fill();
+    }
+
+    // particles
+    for (const p of parts) {
+      ctx.globalAlpha = Math.max(0, p.life / p.max); ctx.fillStyle = p.c;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    for (const f of floats) text(f.txt, f.x, f.y - 14 - f.age * 40, 18 + PR, '#ffe08a', 800, 1 - f.age / 0.9);
+
+    ctx.restore();
+
+    if (flash > 0) { ctx.globalAlpha = flash * 0.5; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+
+    // HUD
+    const topY = SAFE + 46;
+    const below = Math.min(cy + R[1] + 52, H - 120);
+    if (state === 'play') {
+      text(String(score), cx, topY, 46 + pulse * 10, '#ffffff', 800);
+      if (mult > 1 && t - lastStarT < 2.2) text('×' + mult + ' комбо', cx, topY + 38, 16, '#ffe08a', 700, Math.min(1, (2.2 - (t - lastStarT)) * 2));
+      if (paused) {
+        ctx.fillStyle = 'rgba(4,5,13,0.55)'; ctx.fillRect(0, 0, W, H);
+        text('Пауза', cx, cy - 10, 34, '#fff', 800);
+        text('Коснись, чтобы продолжить', cx, cy + 28, 16, '#b9c4ff', 500);
+      }
+    } else if (state === 'menu') {
+      text('ОРБИТА', cx, topY + 44, Math.min(56, W * 0.14), '#ffffff', 900);
+      if (best > 0) text('Рекорд: ' + best, cx, topY + 90, 16, '#b9c4ff', 600);
+      text('Касание — прыжок на другую орбиту', cx, below, 16, '#dfe5ff', 500);
+      text('Собирай ★ и уворачивайся от астероидов', cx, below + 26, 15, '#9aa6e0', 500);
+      text('Коснись, чтобы начать', cx, below + 74, 20, '#6ff7ff', 700, 0.55 + 0.45 * Math.sin(t * 4));
+    } else if (state === 'over') {
+      ctx.fillStyle = 'rgba(4,5,13,0.45)'; ctx.fillRect(0, 0, W, H);
+      text('Счёт', cx, topY + 10, 18, '#b9c4ff', 600);
+      text(String(score), cx, topY + 70, 72, '#ffffff', 900);
+      if (newBest) text('Новый рекорд!', cx, topY + 132, 22, '#ffe08a', 800, 0.7 + 0.3 * Math.sin(t * 6));
+      else text('Рекорд: ' + best, cx, topY + 132, 18, '#b9c4ff', 600);
+      if (t - overT > 0.6) text('Коснись, чтобы сыграть ещё', cx, below + 40, 19, '#6ff7ff', 700, 0.55 + 0.45 * Math.sin(t * 4));
+    }
+  }
+
+  // ---------- input ----------
+  function press() {
+    unlock();
+    if (state === 'menu') { reset(); state = 'play'; tone(520, 0.14, 'triangle', 0.12, 820); return; }
+    if (state === 'over') { if (t - overT > 0.6) { reset(); state = 'play'; tone(520, 0.14, 'triangle', 0.12, 820); } return; }
+    if (paused) { paused = false; return; }
+    pO = 1 - pO;
+    tone(pO ? 600 : 420, 0.07, 'triangle', 0.09);
+    const [px, py] = pos(pA, pR);
+    burst(px, py, 6, '#6ff7ff', 90, 1.6);
+  }
+  window.addEventListener('pointerdown', e => {
+    if (e.target === sndBtn) return;
+    e.preventDefault(); press();
+  }, { passive: false });
+  window.addEventListener('touchend', unlock, { passive: true });
+  window.addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); press(); } });
+  document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('dblclick', e => e.preventDefault());
+  document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play') paused = true; last = performance.now(); });
+  window.addEventListener('blur', () => { if (state === 'play') paused = true; });
+  window.addEventListener('resize', resize);
+
+  // ---------- loop ----------
+  let last = performance.now();
+  function frame(now) {
+    let dt = (now - last) / 1000; last = now;
+    if (dt > 0.05) dt = 0.05; if (dt < 0) dt = 0;
+    update(dt); draw();
+    requestAnimationFrame(frame);
+  }
+  resize(); pR = R[pO];
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
