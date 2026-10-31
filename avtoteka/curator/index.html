@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d14">
+<title>Автотека — выбор фото</title>
+<style>
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:#0b0d14; color:#e9ecf5; font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif; -webkit-tap-highlight-color:transparent; }
+  header { padding:calc(env(safe-area-inset-top) + 14px) 16px 10px; }
+  h1 { margin:0; font-size:20px; font-weight:900; } h1 span { color:#ffae2b; }
+  .sub { color:#8b93ab; font-size:13px; margin:4px 0 10px; line-height:1.4; }
+  select, input[type=text] { width:100%; font:600 15px -apple-system,system-ui,sans-serif; padding:11px 12px; border-radius:12px; border:1px solid #2a3150; background:#151a29; color:#e9ecf5; }
+  .row { display:flex; gap:8px; margin-top:8px; }
+  .row > * { flex:1; }
+  .seg { display:flex; background:#151a29; border-radius:12px; padding:3px; gap:3px; }
+  .seg button { flex:1; border:0; border-radius:9px; padding:9px 6px; font:700 13px -apple-system,system-ui,sans-serif; background:transparent; color:#8b93ab; }
+  .seg button.on { background:#2a3150; color:#fff; }
+  .btn { border:0; border-radius:12px; padding:11px 12px; font:700 14px -apple-system,system-ui,sans-serif; background:#1f2740; color:#e9ecf5; cursor:pointer; }
+  .btn.acc { background:#ffae2b; color:#1a1200; }
+  #preview { position:sticky; top:0; z-index:10; background:rgba(11,13,20,.95); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); padding:10px 16px; border-bottom:1px solid #1d2338; display:flex; gap:12px; align-items:center; }
+  .frame { flex:none; width:150px; height:96px; border-radius:10px; overflow:hidden; position:relative; background:#151a29; touch-action:none; cursor:grab; border:2px solid #2a3150; }
+  .frame .bg { position:absolute; inset:-20px; background-size:cover; background-position:center; filter:blur(14px) brightness(.6); }
+  .frame img { position:absolute; left:50%; top:50%; transform-origin:center; max-width:none; }
+  .frame .ph { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#5d6580; font-size:12px; text-align:center; padding:6px; }
+  .pv { flex:1; min-width:0; font-size:12px; color:#8b93ab; }
+  .pv b { color:#fff; font-size:14px; display:block; margin-bottom:3px; }
+  .pv label { display:flex; align-items:center; gap:6px; margin-top:6px; }
+  .pv input[type=range] { flex:1; }
+  main { padding:10px 12px 20px; display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; }
+  .it { position:relative; border-radius:12px; overflow:hidden; background:#151a29; cursor:pointer; border:2px solid transparent; }
+  .it.sel { border-color:#ffae2b; }
+  .it img { width:100%; height:110px; object-fit:cover; display:block; background:#1a2033; }
+  .it .meta { padding:6px 8px 8px; font-size:10.5px; color:#8b93ab; line-height:1.35; word-break:break-word; }
+  .it .q { position:absolute; left:6px; top:6px; font:800 10px -apple-system,system-ui,sans-serif; padding:3px 6px; border-radius:6px; background:#3fc46e; color:#05210f; }
+  .it .q.f { background:#ffae2b; color:#1a1200; }
+  .empty { grid-column:1/-1; color:#69718a; text-align:center; padding:30px 10px; font-size:14px; }
+  .out { padding:0 16px calc(env(safe-area-inset-bottom) + 40px); }
+  textarea { width:100%; height:120px; border-radius:12px; border:1px solid #2a3150; background:#151a29; color:#cfd6e8; font:12px "SF Mono",Menlo,monospace; padding:10px; }
+  .done { color:#8b93ab; font-size:13px; margin:8px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>АВТО<span>ТЕКА</span> · выбор фото</h1>
+  <div class="sub">Выберите машину, нажмите на лучший снимок, затем двигайте кадр пальцем в превью и подберите масштаб. Выбор сохраняется на этом устройстве. В конце нажмите «Скопировать результат» и пришлите текст мне.</div>
+  <select id="car"></select>
+  <div class="row">
+    <div class="seg" id="mode"><button data-m="q" class="on">⭐ Лучшие</button><button data-m="all">Все фото</button></div>
+  </div>
+  <div class="row"><input type="text" id="q" placeholder="Поиск на Commons"><button class="btn" id="go" style="flex:none">Найти</button></div>
+</header>
+<div id="preview">
+  <div class="frame" id="frame"><div class="ph">Фото не выбрано</div></div>
+  <div class="pv">
+    <b id="pvname">—</b><span id="pvinfo">Нажмите на снимок ниже</span>
+    <label>Масштаб <input type="range" id="zoom" min="60" max="250" value="100"></label>
+    <label><input type="checkbox" id="whole" checked> Машина целиком (размытый фон)</label>
+  </div>
+</div>
+<main id="grid"></main>
+<div class="out">
+  <div class="done" id="done"></div>
+  <div class="row"><button class="btn acc" id="copy">📋 Скопировать результат</button><button class="btn" id="clear" style="flex:none">Сбросить</button></div>
+  <textarea id="json" readonly></textarea>
+</div>
+<script>
+(() => {
+'use strict';
+const CARS = [
+  ['motorwagen', 'Benz Patent-Motorwagen (1886)', 'Benz Patent-Motorwagen'],
+  ['model-t', 'Ford Model T (1908)', 'Ford Model T'],
+  ['vaz-2101', 'ВАЗ-2101 «Жигули» (1970)', 'VAZ-2101'],
+  ['gaz-21', 'ГАЗ-21 «Волга» (1956)', 'GAZ-21 Volga'],
+  ['porsche-911', 'Porsche 911 (1964)', 'Porsche 911 1964 OR Porsche 901'],
+  ['300sl', 'Mercedes-Benz 300 SL (1954)', 'Mercedes-Benz 300 SL Gullwing W198'],
+  ['miura', 'Lamborghini Miura (1966)', 'Lamborghini Miura'],
+  ['chiron', 'Bugatti Chiron (2016)', 'Bugatti Chiron'],
+  ['250gto', 'Ferrari 250 GTO (1962)', 'Ferrari 250 GTO'],
+  ['300slr', 'Mercedes-Benz 300 SLR «Уленгаут» (1955)', 'Mercedes-Benz 300 SLR Uhlenhaut'],
+  ['audi-s4-b9', 'Audi S4 седан (2018)', 'Audi S4 B9 Limousine'],
+];
+const KEY = 'avtoteka_photos_v1';
+let picks = {}; try { picks = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(picks)); } catch (e) {} renderOut(); };
+const sel = document.getElementById('car'), grid = document.getElementById('grid'), qIn = document.getElementById('q');
+for (const [id, name] of CARS) { const o = document.createElement('option'); o.value = id; o.textContent = name; sel.appendChild(o); }
+let mode = 'q';
+const strip = s => (s || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+const carId = () => sel.value, carQ = () => CARS.find(c => c[0] === carId())[2];
+
+async function search() {
+  const term = qIn.value.trim() || carQ();
+  grid.innerHTML = '<div class="empty">Ищу…</div>';
+  const runs = mode === 'q'
+    ? [term + ' incategory:"Quality_images"', term + ' incategory:"Featured_pictures_on_Wikimedia_Commons"', term + ' incategory:"Valued_images_sorted_by_promotion_date"']
+    : [term];
+  let pages = [];
+  try {
+    for (const s of runs) {
+      const url = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=40&gsrsearch=' +
+        encodeURIComponent(s + ' filetype:bitmap') + '&prop=imageinfo|categories&clshow=!hidden&cllimit=50&iiprop=url|size|extmetadata&iiurlwidth=1600';
+      const j = await (await fetch(url)).json();
+      pages = pages.concat(Object.values((j.query && j.query.pages) || {}));
+    }
+  } catch (e) { grid.innerHTML = '<div class="empty">Не удалось связаться с Wikimedia Commons. Проверьте интернет.</div>'; return; }
+  const seen = new Set();
+  pages = pages.filter(p => p.imageinfo && !seen.has(p.title) && seen.add(p.title));
+  pages.sort((a, b) => (b.imageinfo[0].width * b.imageinfo[0].height) - (a.imageinfo[0].width * a.imageinfo[0].height));
+  if (!pages.length) { grid.innerHTML = '<div class="empty">' + (mode === 'q' ? 'Отборных снимков не нашлось. Переключитесь на «Все фото».' : 'Ничего не нашлось. Попробуйте другой запрос.') + '</div>'; return; }
+  grid.innerHTML = '';
+  const cur = picks[carId()];
+  for (const p of pages) {
+    const ii = p.imageinfo[0], md = ii.extmetadata || {};
+    const qual = /Featured/i.test(md.Categories ? md.Categories.value : '') ? 'f' : (/Quality/i.test(md.Categories ? md.Categories.value : '') ? 'q' : '');
+    const el = document.createElement('div'); el.className = 'it' + (cur && cur.file === p.title ? ' sel' : '');
+    const small = (ii.thumburl || ii.url).replace(/\/(\d+)px-/, '/400px-');
+    el.innerHTML = `<img loading="lazy" src="${small}" alt="">${qual ? `<span class="q ${qual}">${qual === 'f' ? 'FEATURED' : 'QUALITY'}</span>` : ''}
+      <div class="meta">${ii.width}×${ii.height}<br>${strip(md.Artist && md.Artist.value).slice(0, 40) || 'автор не указан'} · ${strip(md.LicenseShortName && md.LicenseShortName.value)}</div>`;
+    el.onclick = () => {
+      picks[carId()] = { file: p.title, url: ii.thumburl || ii.url, page: ii.descriptionurl, author: strip(md.Artist && md.Artist.value).slice(0, 80), license: strip(md.LicenseShortName && md.LicenseShortName.value), w: ii.width, h: ii.height, x: 0, y: 0, zoom: 100, whole: true };
+      for (const x of grid.children) x.classList.remove('sel'); el.classList.add('sel');
+      save(); preview();
+    };
+    grid.appendChild(el);
+  }
+}
+
+// ---------- preview with drag / zoom ----------
+const frame = document.getElementById('frame'), zoom = document.getElementById('zoom'), whole = document.getElementById('whole');
+function preview() {
+  const p = picks[carId()];
+  document.getElementById('pvname').textContent = CARS.find(c => c[0] === carId())[1];
+  if (!p) { frame.innerHTML = '<div class="ph">Фото не выбрано</div>'; document.getElementById('pvinfo').textContent = 'Нажмите на снимок ниже'; return; }
+  document.getElementById('pvinfo').textContent = (p.author || 'автор не указан') + ' · ' + p.license;
+  zoom.value = p.zoom; whole.checked = p.whole;
+  frame.innerHTML = `<div class="bg" style="background-image:url('${p.url}')"></div><img src="${p.url}" alt="">`;
+  layout();
+}
+function layout() {
+  const p = picks[carId()]; if (!p) return;
+  const img = frame.querySelector('img'), fw = frame.clientWidth, fh = frame.clientHeight, ar = p.w / p.h;
+  const base = p.whole ? Math.min(fw / ar, fh) : Math.max(fw / ar, fh);   // fitted image height
+  const h = base * p.zoom / 100, w = h * ar;
+  img.style.width = w + 'px'; img.style.height = h + 'px';
+  img.style.transform = `translate(calc(-50% + ${p.x * fw}px), calc(-50% + ${p.y * fh}px))`;
+  frame.querySelector('.bg').style.display = p.whole ? 'block' : 'none';
+}
+zoom.oninput = () => { const p = picks[carId()]; if (!p) return; p.zoom = +zoom.value; layout(); save(); };
+whole.onchange = () => { const p = picks[carId()]; if (!p) return; p.whole = whole.checked; p.x = 0; p.y = 0; layout(); save(); };
+let drag = null;
+frame.addEventListener('pointerdown', e => { if (!picks[carId()]) return; drag = { x: e.clientX, y: e.clientY }; frame.setPointerCapture(e.pointerId); });
+frame.addEventListener('pointermove', e => {
+  if (!drag) return; const p = picks[carId()];
+  p.x = Math.max(-.6, Math.min(.6, p.x + (e.clientX - drag.x) / frame.clientWidth));
+  p.y = Math.max(-.6, Math.min(.6, p.y + (e.clientY - drag.y) / frame.clientHeight));
+  drag = { x: e.clientX, y: e.clientY }; layout();
+});
+frame.addEventListener('pointerup', () => { if (drag) { drag = null; save(); } });
+
+// ---------- output ----------
+function renderOut() {
+  const n = CARS.filter(c => picks[c[0]]).length;
+  document.getElementById('done').textContent = 'Выбрано: ' + n + ' из ' + CARS.length + (n < CARS.length ? '. Без фото: ' + CARS.filter(c => !picks[c[0]]).map(c => c[1].split(' (')[0]).join(', ') : ' — всё готово!');
+  const out = {}; for (const [id] of CARS) if (picks[id]) { const p = picks[id]; out[id] = { file: p.file, author: p.author, license: p.license, x: +p.x.toFixed(3), y: +p.y.toFixed(3), zoom: p.zoom, whole: p.whole }; }
+  document.getElementById('json').value = JSON.stringify(out);
+}
+document.getElementById('copy').onclick = async () => {
+  const t = document.getElementById('json'); renderOut();
+  try { await navigator.clipboard.writeText(t.value); document.getElementById('copy').textContent = '✅ Скопировано — вставьте в чат'; }
+  catch (e) { t.focus(); t.select(); document.getElementById('copy').textContent = 'Выделил текст — скопируйте вручную'; }
+};
+document.getElementById('clear').onclick = () => { delete picks[carId()]; save(); preview(); for (const x of grid.children) x.classList.remove('sel'); };
+for (const b of document.querySelectorAll('#mode button')) b.onclick = () => { mode = b.dataset.m; for (const x of document.querySelectorAll('#mode button')) x.classList.toggle('on', x === b); search(); };
+sel.onchange = () => { qIn.value = ''; preview(); search(); };
+document.getElementById('go').onclick = search;
+qIn.addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+window.addEventListener('resize', layout);
+preview(); search(); renderOut();
+})();
+</script>
+</body>
+</html>
