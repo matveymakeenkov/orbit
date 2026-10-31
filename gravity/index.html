@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Гравитация — лабиринт</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;background:#0d0f1f;color:#eef0ff;font-family:Rubik,system-ui,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+  canvas{display:block;position:fixed;inset:0;width:100%;height:100%}
+  .ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(9,11,26,.9);text-align:center;padding:28px;box-sizing:border-box}
+  .ov.hidden{display:none}
+  h1{margin:0;font-size:44px;font-weight:800;letter-spacing:1px;background:linear-gradient(90deg,#8f9bff,#ff9ad5);-webkit-background-clip:text;background-clip:text;color:transparent}
+  p{margin:0;max-width:340px;line-height:1.45;color:#b9bedf;font-size:16px}
+  .big{font-size:64px;font-weight:800;color:#fff;line-height:1}
+  button{font:inherit;font-size:20px;font-weight:600;border:0;border-radius:16px;padding:16px 44px;background:linear-gradient(135deg,#6f7dff,#c86bff);color:#fff;box-shadow:0 8px 30px rgba(130,110,255,.45);cursor:pointer;margin-top:8px}
+  button:active{transform:scale(.97)}
+  .muted{font-size:14px;color:#7d83ad}
+  .rules{display:flex;flex-direction:column;gap:6px;font-size:15px;color:#c9cdf0;text-align:left}
+  .rules span b{color:#fff}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="ov" id="menu">
+  <h1>Гравитация</h1>
+  <p>Докати шарик до зелёного выхода. Каждые 10 секунд лабиринт перестраивается!</p>
+  <div class="rules">
+    <span>📱 <b>Наклоняй телефон</b> или зажми экран и тяни пальцем</span>
+    <span>🟠 За 2,5 с до сдвига видно контур нового лабиринта</span>
+    <span>🕳️ Ямы отнимают 3 секунды</span>
+    <span>⏱️ Каждый выход даёт +10 секунд</span>
+  </div>
+  <button id="play">Играть</button>
+  <div class="muted" id="bestMenu"></div>
+</div>
+
+<div class="ov hidden" id="over">
+  <p>Время вышло</p>
+  <div class="big" id="finalScore">0</div>
+  <p id="overText">выходов пройдено</p>
+  <button id="again">Ещё раз</button>
+  <div class="muted" id="bestOver"></div>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  const $ = id => document.getElementById(id);
+
+  // ---------- constants (in cell units) ----------
+  const T = 0.12;          // wall thickness
+  const BR = 0.27;         // ball radius
+  const ACC = 20;          // max acceleration, cells/s^2
+  const VMAX = 9;          // max speed
+  const DAMP = 1.3;        // damping
+  const BOUNCE = 0.35;
+  const SHIFT = 10;        // seconds between maze shifts
+  const PREVIEW = 2.5;
+  const START_TIME = 60, BONUS = 10, HOLE_PENALTY = 3;
+  const HUD = 70;
+
+  // ---------- state ----------
+  let W = 0, H = 0, DPR = 1, cell = 30, ox = 0, oy = 0;
+  let C = 6, R = 10, maze, nextMaze, rects = [], nextRects = [], holes = [];
+  let goal = {c: 0, r: 0}, start = {c: 0, r: 0};
+  let ball = {x: .5, y: .5, vx: 0, vy: 0}, trail = [];
+  let shiftT = SHIFT, timeLeft = START_TIME, score = 0, level = 1;
+  let state = 'menu', flash = 0, falling = 0, fallAt = null, playTime = 0, hitCooldown = 0;
+  let popups = [];
+  let best = 0;
+  try { best = +localStorage.getItem('gravity-best') || 0; } catch (e) {}
+
+  const rnd = n => Math.floor(Math.random() * n);
+  const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+  const idx = (c, r) => r * C + c;
+  const pop4 = b => (b & 1) + (b >> 1 & 1) + (b >> 2 & 1) + (b >> 3 & 1);
+
+  // ---------- sound ----------
+  let AC = null;
+  function beep(f, dur, type = 'sine', vol = .15, f2 = null) {
+    if (!AC) return;
+    try {
+      const o = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime;
+      o.type = type; o.frequency.setValueAtTime(f, t);
+      if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + dur);
+    } catch (e) {}
+  }
+  const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+
+  // ---------- maze ----------
+  // bits: N=1 E=2 S=4 W=8 (wall present)
+  const DIRS = [[0, -1, 1, 4], [1, 0, 2, 8], [0, 1, 4, 1], [-1, 0, 8, 2]];
+  function genMaze() {
+    const g = new Uint8Array(C * R).fill(15), vis = new Uint8Array(C * R);
+    const sc = rnd(C), sr = rnd(R); vis[idx(sc, sr)] = 1;
+    const st = [[sc, sr]];
+    while (st.length) {
+      const [x, y] = st[st.length - 1];
+      const opts = DIRS.filter(([dx, dy]) => {
+        const nx = x + dx, ny = y + dy;
+        return nx >= 0 && ny >= 0 && nx < C && ny < R && !vis[idx(nx, ny)];
+      });
+      if (!opts.length) { st.pop(); continue; }
+      const [dx, dy, a, b] = opts[rnd(opts.length)];
+      const nx = x + dx, ny = y + dy;
+      g[idx(x, y)] &= ~a; g[idx(nx, ny)] &= ~b; vis[idx(nx, ny)] = 1;
+      st.push([nx, ny]);
+    }
+    // a few loops so it's less claustrophobic
+    const extra = Math.floor(C * R * 0.07);
+    for (let k = 0; k < extra; k++) {
+      const x = rnd(C), y = rnd(R), [dx, dy, a, b] = DIRS[rnd(4)];
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= C || ny >= R) continue;
+      g[idx(x, y)] &= ~a; g[idx(nx, ny)] &= ~b;
+    }
+    return g;
+  }
+  function buildRects(m) {
+    const out = [];
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+      const w = m[idx(c, r)];
+      if (w & 1) out.push([c - T / 2, r - T / 2, 1 + T, T]);
+      if (w & 8) out.push([c - T / 2, r - T / 2, T, 1 + T]);
+      if (r === R - 1 && (w & 4)) out.push([c - T / 2, r + 1 - T / 2, 1 + T, T]);
+      if (c === C - 1 && (w & 2)) out.push([c + 1 - T / 2, r - T / 2, T, 1 + T]);
+    }
+    return out;
+  }
+  function ballCell() { return {c: clamp(Math.floor(ball.x), 0, C - 1), r: clamp(Math.floor(ball.y), 0, R - 1)}; }
+  function placeHoles(m) {
+    if (level < 2) return [];
+    const n = Math.min(level - 1, 6);
+    const bc = ballCell(), list = [];
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+      if (pop4(m[idx(c, r)]) !== 3) continue;               // dead ends only: never blocks the path
+      if (Math.abs(c - bc.c) + Math.abs(r - bc.r) <= 1) continue;
+      if ((c === goal.c && r === goal.r) || (c === start.c && r === start.r)) continue;
+      list.push({c, r});
+    }
+    for (let i = list.length - 1; i > 0; i--) { const j = rnd(i + 1); [list[i], list[j]] = [list[j], list[i]]; }
+    return list.slice(0, n);
+  }
+
+  // ---------- layout ----------
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = W * DPR; cv.height = H * DPR;
+    layout();
+  }
+  function layout() {
+    const aw = W - 24, ah = H - HUD - 20;
+    cell = Math.min(aw / C, ah / R);
+    ox = (W - cell * C) / 2;
+    oy = HUD + (ah - cell * R) / 2 + 4;
+  }
+  function newLevel() {
+    C = Math.min(12, 5 + Math.ceil(level / 2));
+    const aspect = (H - HUD - 20) / (W - 24);
+    R = clamp(Math.round(C * aspect), C, C * 2);
+    const corners = [[0, 0], [C - 1, 0], [0, R - 1], [C - 1, R - 1]];
+    const k = rnd(4);
+    start = {c: corners[k][0], r: corners[k][1]};
+    goal = {c: corners[3 - k][0], r: corners[3 - k][1]};
+    ball = {x: start.c + .5, y: start.r + .5, vx: 0, vy: 0};
+    trail = [];
+    maze = genMaze(); rects = buildRects(maze);
+    nextMaze = genMaze(); nextRects = buildRects(nextMaze);
+    holes = placeHoles(maze);
+    shiftT = SHIFT; falling = 0;
+    layout();
+  }
+  function snapBall() {
+    const {c, r} = ballCell(), w = maze[idx(c, r)], lo = T / 2 + BR;
+    if (w & 8) ball.x = Math.max(ball.x, c + lo);
+    if (w & 2) ball.x = Math.min(ball.x, c + 1 - lo);
+    if (w & 1) ball.y = Math.max(ball.y, r + lo);
+    if (w & 4) ball.y = Math.min(ball.y, r + 1 - lo);
+  }
+  function doShift() {
+    maze = nextMaze; rects = nextRects;
+    snapBall();
+    holes = placeHoles(maze);
+    nextMaze = genMaze(); nextRects = buildRects(nextMaze);
+    shiftT = SHIFT; flash = 1;
+    beep(220, .35, 'triangle', .12, 660); buzz(30);
+  }
+
+  // ---------- input ----------
+  const raw = {g: 0, b: 0}; let tiltOk = false, calib = null;
+  addEventListener('deviceorientation', e => {
+    if (e.gamma == null || e.beta == null) return;
+    raw.g = e.gamma; raw.b = e.beta; tiltOk = true;
+  });
+  function tiltVec() {
+    if (!tiltOk) return null;
+    if (!calib) calib = {g: raw.g, b: raw.b};
+    const g = raw.g - calib.g, b = raw.b - calib.b;
+    const ang = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+    let x, y;
+    if (ang === 90) { x = b; y = -g; }
+    else if (ang === -90 || ang === 270) { x = -b; y = g; }
+    else if (ang === 180) { x = -g; y = -b; }
+    else { x = g; y = b; }
+    return {x: clamp(x / 22, -1, 1), y: clamp(y / 22, -1, 1)};
+  }
+  const touch = {on: false, sx: 0, sy: 0, x: 0, y: 0, id: null};
+  cv.addEventListener('pointerdown', e => { touch.on = true; touch.id = e.pointerId; touch.sx = touch.x = e.clientX; touch.sy = touch.y = e.clientY; try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
+  cv.addEventListener('pointermove', e => { if (touch.on && e.pointerId === touch.id) { touch.x = e.clientX; touch.y = e.clientY; } });
+  const up = e => { if (e.pointerId === touch.id) touch.on = false; };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  const keys = new Set();
+  addEventListener('keydown', e => keys.add(e.key.toLowerCase()));
+  addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+  const TR = 70; // px for full touch tilt
+  function input() {
+    if (touch.on) {
+      let dx = (touch.x - touch.sx) / TR, dy = (touch.y - touch.sy) / TR;
+      const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; }
+      return {x: dx, y: dy};
+    }
+    const k = {x: 0, y: 0};
+    if (keys.has('arrowleft') || keys.has('a') || keys.has('ф')) k.x -= 1;
+    if (keys.has('arrowright') || keys.has('d') || keys.has('в')) k.x += 1;
+    if (keys.has('arrowup') || keys.has('w') || keys.has('ц')) k.y -= 1;
+    if (keys.has('arrowdown') || keys.has('s') || keys.has('ы')) k.y += 1;
+    if (k.x || k.y) return k;
+    return tiltVec() || {x: 0, y: 0};
+  }
+
+  // ---------- physics ----------
+  function collide() {
+    for (let i = 0; i < rects.length; i++) {
+      const [rx, ry, rw, rh] = rects[i];
+      if (ball.x + BR < rx || ball.x - BR > rx + rw || ball.y + BR < ry || ball.y - BR > ry + rh) continue;
+      const cx = clamp(ball.x, rx, rx + rw), cy = clamp(ball.y, ry, ry + rh);
+      let dx = ball.x - cx, dy = ball.y - cy, d = Math.hypot(dx, dy), nx, ny, pen;
+      if (d < 1e-6) { // centre inside wall: push out along the shallow axis
+        const mx = ball.x - (rx + rw / 2), my = ball.y - (ry + rh / 2);
+        if (rw / 2 - Math.abs(mx) < rh / 2 - Math.abs(my)) { nx = Math.sign(mx) || 1; ny = 0; pen = rw / 2 - Math.abs(mx) + BR; }
+        else { nx = 0; ny = Math.sign(my) || 1; pen = rh / 2 - Math.abs(my) + BR; }
+      } else {
+        if (d >= BR) continue;
+        nx = dx / d; ny = dy / d; pen = BR - d;
+      }
+      ball.x += nx * pen; ball.y += ny * pen;
+      const vn = ball.vx * nx + ball.vy * ny;
+      if (vn < 0) {
+        ball.vx -= (1 + BOUNCE) * vn * nx; ball.vy -= (1 + BOUNCE) * vn * ny;
+        if (-vn > 2.5 && hitCooldown <= 0) { beep(140 + Math.min(-vn, 9) * 20, .06, 'square', .04); buzz(8); hitCooldown = .08; }
+      }
+    }
+  }
+
+  function update(dt) {
+    if (state !== 'play') return;
+    playTime += dt; hitCooldown -= dt;
+    timeLeft -= dt;
+    if (timeLeft <= 0) { timeLeft = 0; gameOver(); return; }
+    shiftT -= dt; if (shiftT <= 0) doShift();
+    flash = Math.max(0, flash - dt * 2.5);
+    popups.forEach(p => p.t -= dt); popups = popups.filter(p => p.t > 0);
+
+    if (falling > 0) {
+      falling -= dt;
+      if (falling <= 0) { ball = {x: start.c + .5, y: start.r + .5, vx: 0, vy: 0}; trail = []; snapBall(); }
+      return;
+    }
+
+    const a = input();
+    ball.vx += a.x * ACC * dt; ball.vy += a.y * ACC * dt;
+    const damp = Math.exp(-DAMP * dt); ball.vx *= damp; ball.vy *= damp;
+    // gentle pull toward goal / holes when close
+    const pull = (cx, cy, s) => {
+      const dx = cx - ball.x, dy = cy - ball.y, d = Math.hypot(dx, dy);
+      if (d < .5 && d > 1e-4) { ball.vx += dx / d * s * dt; ball.vy += dy / d * s * dt; }
+      return d;
+    };
+    let sp = Math.hypot(ball.vx, ball.vy);
+    if (sp > VMAX) { ball.vx *= VMAX / sp; ball.vy *= VMAX / sp; sp = VMAX; }
+    const steps = Math.min(10, Math.ceil(sp * dt / (BR * .35)) + 1);
+    for (let s = 0; s < steps; s++) {
+      ball.x += ball.vx * dt / steps; ball.y += ball.vy * dt / steps;
+      collide();
+    }
+    ball.x = clamp(ball.x, BR, C - BR); ball.y = clamp(ball.y, BR, R - BR);
+    trail.push([ball.x, ball.y]); if (trail.length > 14) trail.shift();
+
+    if (pull(goal.c + .5, goal.r + .5, 10) < .3) { levelUp(); return; }
+    for (const h of holes) {
+      if (pull(h.c + .5, h.r + .5, 6) < .26) {
+        falling = .6; fallAt = {x: h.c + .5, y: h.r + .5};
+        timeLeft = Math.max(0, timeLeft - HOLE_PENALTY);
+        popups.push({text: '−' + HOLE_PENALTY + ' с', x: h.c + .5, y: h.r + .5, t: 1, col: '#ff6b7a'});
+        beep(500, .5, 'sawtooth', .08, 60); buzz([20, 40, 20]);
+        break;
+      }
+    }
+  }
+
+  function levelUp() {
+    score++; level++; timeLeft += BONUS;
+    popups.push({text: '+' + BONUS + ' с', x: goal.c + .5, y: goal.r + .5, t: 1.1, col: '#5dffa6', screen: true});
+    beep(660, .12, 'sine', .15); setTimeout(() => beep(990, .2, 'sine', .15), 90); buzz(40);
+    const p = popups[popups.length - 1]; p.sx = ox + p.x * cell; p.sy = oy + p.y * cell;
+    newLevel(); flash = .6;
+  }
+
+  function startGame() {
+    if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    try { AC && AC.resume(); } catch (e) {}
+    calib = null; score = 0; level = 1; timeLeft = START_TIME; playTime = 0; popups = [];
+    newLevel();
+    state = 'play';
+    $('menu').classList.add('hidden'); $('over').classList.add('hidden');
+  }
+  async function requestTilt() {
+    try {
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        await DeviceOrientationEvent.requestPermission();
+      }
+    } catch (e) {}
+  }
+  function gameOver() {
+    state = 'over';
+    if (score > best) { best = score; try { localStorage.setItem('gravity-best', best); } catch (e) {} }
+    $('finalScore').textContent = score;
+    $('overText').textContent = plural(score, 'выход пройден', 'выхода пройдено', 'выходов пройдено');
+    $('bestOver').textContent = 'Рекорд: ' + best;
+    $('over').classList.remove('hidden');
+    beep(330, .5, 'triangle', .12, 110);
+  }
+  function plural(n, one, few, many) {
+    const m10 = n % 10, m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return one;
+    if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
+    return many;
+  }
+  $('play').onclick = () => { requestTilt(); startGame(); };
+  $('again').onclick = () => { requestTilt(); startGame(); };
+  if (best) $('bestMenu').textContent = 'Рекорд: ' + best;
+
+  // ---------- drawing ----------
+  const X = x => ox + x * cell, Y = y => oy + y * cell;
+  function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
+
+  function drawWalls(list, color, alpha, glow) {
+    ctx.save();
+    ctx.globalAlpha = alpha; ctx.fillStyle = color;
+    if (glow) { ctx.shadowColor = color; ctx.shadowBlur = glow; }
+    ctx.beginPath();
+    for (const [x, y, w, h] of list) ctx.rect(X(x), Y(y), w * cell, h * cell);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function draw(now) {
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#12152b'); bg.addColorStop(1, '#0a0b18');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    if (!maze) return;
+
+    // board
+    ctx.fillStyle = '#171b38'; rr(ox - 8, oy - 8, C * cell + 16, R * cell + 16, 16); ctx.fill();
+    // floor dots
+    ctx.fillStyle = 'rgba(140,150,255,.07)';
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) { ctx.beginPath(); ctx.arc(X(c + .5), Y(r + .5), cell * .04, 0, 6.283); ctx.fill(); }
+
+    // start pad
+    ctx.fillStyle = 'rgba(143,155,255,.12)';
+    ctx.beginPath(); ctx.arc(X(start.c + .5), Y(start.r + .5), cell * .32, 0, 6.283); ctx.fill();
+
+    // holes
+    for (const h of holes) {
+      const g = ctx.createRadialGradient(X(h.c + .5), Y(h.r + .5), 0, X(h.c + .5), Y(h.r + .5), cell * .32);
+      g.addColorStop(0, '#000'); g.addColorStop(.75, '#05050c'); g.addColorStop(1, 'rgba(255,90,120,.5)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(X(h.c + .5), Y(h.r + .5), cell * .32, 0, 6.283); ctx.fill();
+    }
+
+    // goal
+    const pulse = .5 + .5 * Math.sin(now / 250);
+    ctx.save();
+    ctx.shadowColor = '#5dffa6'; ctx.shadowBlur = 18 + pulse * 14;
+    ctx.fillStyle = '#2fe38a';
+    ctx.beginPath(); ctx.arc(X(goal.c + .5), Y(goal.r + .5), cell * (.26 + pulse * .04), 0, 6.283); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(93,255,166,.5)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(X(goal.c + .5), Y(goal.r + .5), cell * (.34 + pulse * .08), 0, 6.283); ctx.stroke();
+
+    // walls (+ preview of next maze)
+    const p = state === 'play' && shiftT < PREVIEW ? 1 - shiftT / PREVIEW : 0;
+    const blink = shiftT < 1 && state === 'play' ? (Math.sin(now / 45) > 0 ? 1 : .55) : 1;
+    drawWalls(rects, '#8f9bff', (1 - p * .45) * blink, 10);
+    if (p > 0) drawWalls(nextRects, '#ffb35c', p * .5, 0);
+
+    // ball
+    if (falling > 0 && fallAt) {
+      const k = falling / .6;
+      const bx = fallAt.x + (ball.x - fallAt.x) * k, by = fallAt.y + (ball.y - fallAt.y) * k;
+      drawBall(bx, by, BR * k, k);
+    } else {
+      for (let i = 0; i < trail.length; i++) {
+        const [tx, ty] = trail[i], a = i / trail.length;
+        ctx.fillStyle = `rgba(255,154,213,${a * .25})`;
+        ctx.beginPath(); ctx.arc(X(tx), Y(ty), cell * BR * a * .9, 0, 6.283); ctx.fill();
+      }
+      drawBall(ball.x, ball.y, BR, 1);
+    }
+
+    // popups
+    for (const pp of popups) {
+      const a = Math.min(1, pp.t * 2);
+      ctx.globalAlpha = a; ctx.fillStyle = pp.col;
+      ctx.font = '800 26px Rubik, system-ui'; ctx.textAlign = 'center';
+      const px = pp.screen ? pp.sx : X(pp.x), py = (pp.screen ? pp.sy : Y(pp.y)) - (1.1 - pp.t) * 50;
+      ctx.fillText(pp.text, px, py);
+      ctx.globalAlpha = 1;
+    }
+
+    // flash on shift
+    if (flash > 0) { ctx.fillStyle = `rgba(255,179,92,${flash * .18})`; ctx.fillRect(0, 0, W, H); }
+
+    drawHUD(now);
+
+    // touch joystick
+    if (touch.on && state === 'play') {
+      ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(touch.sx, touch.sy, TR, 0, 6.283); ctx.stroke();
+      let dx = touch.x - touch.sx, dy = touch.y - touch.sy; const l = Math.hypot(dx, dy);
+      if (l > TR) { dx *= TR / l; dy *= TR / l; }
+      ctx.fillStyle = 'rgba(255,255,255,.3)';
+      ctx.beginPath(); ctx.arc(touch.sx + dx, touch.sy + dy, 22, 0, 6.283); ctx.fill();
+    }
+
+    // control hint
+    if (state === 'play' && playTime < 5 && !touch.on) {
+      const msg = tiltOk ? 'Наклоняй телефон' : 'Зажми экран и тяни пальцем';
+      ctx.globalAlpha = Math.min(1, (5 - playTime));
+      ctx.font = '600 16px Rubik, system-ui'; ctx.textAlign = 'center';
+      const tw = ctx.measureText(msg).width + 32;
+      ctx.fillStyle = 'rgba(10,12,30,.8)'; rr(W / 2 - tw / 2, H - 64, tw, 40, 20); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.fillText(msg, W / 2, H - 38);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawBall(x, y, r, a) {
+    const px = X(x), py = Y(y), pr = r * cell;
+    if (pr < .5) return;
+    ctx.save(); ctx.globalAlpha = a;
+    ctx.shadowColor = '#ff9ad5'; ctx.shadowBlur = 16;
+    const g = ctx.createRadialGradient(px - pr * .35, py - pr * .35, pr * .1, px, py, pr);
+    g.addColorStop(0, '#fff'); g.addColorStop(.35, '#ffb8e2'); g.addColorStop(1, '#d94fa0');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, pr, 0, 6.283); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawHUD(now) {
+    const cy = 38;
+    ctx.textBaseline = 'middle';
+    // left: level & score
+    ctx.textAlign = 'left'; ctx.fillStyle = '#7d83ad'; ctx.font = '600 12px Rubik, system-ui';
+    ctx.fillText('УРОВЕНЬ', 18, cy - 12);
+    ctx.fillStyle = '#fff'; ctx.font = '800 22px Rubik, system-ui';
+    ctx.fillText(level, 18, cy + 9);
+
+    // centre: time
+    ctx.textAlign = 'center';
+    const low = timeLeft < 10;
+    ctx.fillStyle = low ? (Math.sin(now / 120) > 0 ? '#ff6b7a' : '#ffd0d5') : '#fff';
+    ctx.font = '800 34px Rubik, system-ui';
+    ctx.fillText(Math.ceil(timeLeft), W / 2, cy);
+    ctx.fillStyle = '#7d83ad'; ctx.font = '600 11px Rubik, system-ui';
+    ctx.fillText('СЕКУНД', W / 2, cy + 23);
+
+    // right: shift ring
+    const rx = W - 36, rad = 18, frac = state === 'play' ? shiftT / SHIFT : 1;
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,179,92,.18)';
+    ctx.beginPath(); ctx.arc(rx, cy, rad, 0, 6.283); ctx.stroke();
+    ctx.strokeStyle = shiftT < PREVIEW ? '#ffb35c' : '#c9a37a';
+    ctx.beginPath(); ctx.arc(rx, cy, rad, -Math.PI / 2, -Math.PI / 2 + frac * 6.283); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = '800 15px Rubik, system-ui';
+    ctx.fillText(Math.ceil(shiftT), rx, cy + 1);
+    ctx.fillStyle = '#7d83ad'; ctx.font = '600 10px Rubik, system-ui';
+    ctx.fillText('СДВИГ', rx, cy + 30);
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  // ---------- loop ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    update(dt);
+    draw(now);
+    requestAnimationFrame(frame);
+  }
+  addEventListener('resize', resize);
+  document.addEventListener('visibilitychange', () => { last = performance.now(); });
+  resize();
+  // demo maze behind the menu
+  newLevel();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
