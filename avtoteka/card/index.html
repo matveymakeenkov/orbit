@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0d14">
+<title>Автотека — Lamborghini Miura</title>
+<style>
+  * { box-sizing:border-box; }
+  html,body { margin:0; min-height:100%; color:#e9ecf5; font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif; -webkit-tap-highlight-color:transparent;
+    background:radial-gradient(900px 520px at 50% 28%, #23294a 0%, #0b0d14 70%) fixed #0b0d14; -webkit-user-select:none; user-select:none; }
+  .top { padding:calc(env(safe-area-inset-top) + 12px) 16px 0; display:flex; align-items:baseline; justify-content:space-between; }
+  .top h1 { margin:0; font-size:18px; font-weight:900; letter-spacing:.3px; } .top h1 span { color:#ffae2b; }
+  .top a { color:#8b93ab; font-size:13px; text-decoration:none; }
+  #stage { position:relative; height:min(66vh, 600px); min-height:470px; display:flex; align-items:center; justify-content:center; touch-action:none; cursor:grab; perspective:1100px; }
+  #stage:active { cursor:grabbing; }
+  #shadow { position:absolute; bottom:5%; left:50%; width:240px; height:26px; margin-left:-120px; border-radius:50%; background:radial-gradient(closest-side, rgba(0,0,0,.6), transparent); pointer-events:none; }
+  #scaler { transform:scale(var(--k,1)); transform-style:preserve-3d; }
+  .hint { text-align:center; color:#69718a; font-size:12.5px; margin:-6px 0 8px; }
+  .panel { max-width:520px; margin:0 auto; padding:0 14px calc(env(safe-area-inset-bottom) + 30px); }
+  .lbl { font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:#69718a; margin:14px 2px 7px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { border:0; border-radius:18px; padding:8px 12px; font:700 13px -apple-system,system-ui,sans-serif; background:#1a2033; color:#cdd3e6; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+  .chip.on { background:#e9ecf5; color:#0b0d14; }
+  .chip i { width:9px; height:9px; border-radius:50%; }
+  .btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:16px; }
+  .btn { border:0; border-radius:12px; padding:12px; font:700 14px -apple-system,system-ui,sans-serif; background:#1f2740; color:#e9ecf5; cursor:pointer; }
+  .btn.acc { background:#38d1ff; color:#06121a; }
+  #credit { font-size:11.5px; color:#69718a; text-align:center; margin-top:14px; line-height:1.45; min-height:16px; }
+  #credit a { color:#8fb6ff; }
+  #file { display:none; }
+  .ldesc { font-size:13px; color:#a9b1c8; margin:8px 2px 0; min-height:36px; line-height:1.4; }
+
+  /* ---------- card (race style) ---------- */
+  .card { --mx:.5; --my:.5; --rc:#a855ff; width:290px; height:406px; position:relative; transform-style:preserve-3d; transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)); will-change:transform; }
+  .face { position:absolute; inset:0; overflow:hidden; border-radius:14px; backface-visibility:hidden; -webkit-backface-visibility:hidden; background:#f4f4f2; color:#111;
+    box-shadow:0 0 0 1px rgba(0,0,0,.25); }
+  .back { transform:rotateY(180deg); }
+  .ph { position:absolute; left:0; right:0; top:0; height:53%; overflow:hidden; clip-path:polygon(0 0,100% 0,100% 82%,0 100%); background:#2a3352; }
+  .ph img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 58%; opacity:0; transition:opacity .6s; }
+  .ph img.ok { opacity:1; }
+  .ph svg { position:absolute; left:0; right:0; bottom:0; width:100%; height:88%; }
+  .liv { position:absolute; left:-20%; right:-20%; top:46%; height:46px; transform:rotate(-8deg); background:var(--rc); z-index:3; box-shadow:0 10px 0 #111, 0 20px 0 #f4f4f2, 0 26px 0 var(--rc); }
+  .num { position:absolute; left:12px; top:12px; width:58px; height:58px; border-radius:50%; background:#fff; border:4px solid #111; z-index:6;
+    display:flex; align-items:center; justify-content:center; font:900 italic 22px -apple-system,system-ui,sans-serif; letter-spacing:-1px; box-shadow:0 3px 10px rgba(0,0,0,.35); }
+  .yr { position:absolute; right:12px; top:14px; z-index:6; font:900 italic 15px -apple-system,system-ui,sans-serif; color:#fff; background:#111; padding:4px 9px; border-radius:6px; transform:skewX(-10deg); }
+  .rt { position:absolute; left:14px; top:calc(46% + 13px); z-index:6; color:#fff; font:900 italic 12px -apple-system,system-ui,sans-serif; letter-spacing:1.5px; transform:rotate(-8deg); text-transform:uppercase; text-shadow:0 1px 0 rgba(0,0,0,.3); }
+  .nm { position:absolute; left:14px; right:14px; top:64%; z-index:6; font:900 italic 23px -apple-system,system-ui,sans-serif; line-height:1; text-transform:uppercase; letter-spacing:-.3px; }
+  .mk { font:700 11px -apple-system,system-ui,sans-serif; color:#666; text-transform:uppercase; letter-spacing:1px; margin-top:5px; font-style:normal; }
+  .bars { position:absolute; left:14px; right:14px; bottom:24px; z-index:6; font:800 10px -apple-system,system-ui,sans-serif; }
+  .br { display:grid; grid-template-columns:62px 1fr 64px; align-items:center; gap:6px; margin-top:4px; }
+  .br span:first-child { color:#666; letter-spacing:.8px; }
+  .tr { height:8px; background:#ddd; border-radius:2px; overflow:hidden; transform:skewX(-20deg); }
+  .tr i { display:block; height:100%; background:var(--rc); }
+  .br b { text-align:right; font-size:11px; }
+  .chk { position:absolute; left:0; right:0; bottom:0; height:12px; z-index:6; background:conic-gradient(#111 25%,#fff 0 50%,#111 0 75%,#fff 0) 0 0/12px 12px; }
+  .stamp { position:absolute; right:14px; top:calc(46% - 34px); z-index:25; transform:rotate(-8deg); font:900 12px -apple-system,system-ui,sans-serif; letter-spacing:1px; padding:4px 8px; border-radius:6px; color:#fff;
+    background:linear-gradient(135deg,#ff2d95,#ffcf3a,#3dffb0,#38c8ff,#9a4dff); box-shadow:0 2px 10px rgba(0,0,0,.5); display:none; }
+  .l-num .stamp { display:block; }
+  .back .liv { top:auto; bottom:30px; height:26px; box-shadow:0 7px 0 #111, 0 14px 0 #f4f4f2; }
+  .back .txt { position:absolute; inset:18px 18px 70px; z-index:6; font-size:13px; line-height:1.45; }
+  .back .k { font-weight:800; color:#666; font-size:11px; letter-spacing:1px; }
+  .back h3 { font:900 italic 20px -apple-system,system-ui,sans-serif; text-transform:uppercase; margin:6px 0 10px; }
+  .back table { width:100%; border-collapse:collapse; margin-top:12px; font-size:12px; }
+  .back td { padding:4px 0; border-bottom:1px dashed #ccc; } .back td:last-child { text-align:right; font-weight:800; }
+  .fx, .glare { position:absolute; inset:0; pointer-events:none; z-index:20; border-radius:14px; }
+  .glare { background:radial-gradient(circle at calc(var(--mx)*100%) calc(var(--my)*100%), rgba(255,255,255,.35), transparent 45%); mix-blend-mode:overlay; }
+
+  /* rarity */
+  .r-common { --rc:#9aa3b5; } .r-uncommon { --rc:#3fc46e; } .r-rare { --rc:#3d8bff; } .r-epic { --rc:#a855ff; } .r-legend { --rc:#ff9f1a; } .r-unique { --rc:#ff3d63; }
+  .r-unique .liv { background:linear-gradient(90deg,#ff3d63,#ffae2b,#ffe14d,#3fc46e,#38d1ff,#a855ff,#ff3d63); background-size:200% 100%; animation:flow 3s linear infinite; }
+  @keyframes flow { to { background-position:200% 0; } }
+
+  /* lamination */
+  .l-matte .ph img { filter:saturate(.82) contrast(.95); } .l-matte .glare { opacity:.25; }
+  .l-gloss .fx { background:radial-gradient(circle at calc(var(--mx)*100%) calc(var(--my)*100%), rgba(255,255,255,.75), transparent 34%),
+      linear-gradient(115deg, transparent 38%, rgba(255,255,255,.25) 48%, transparent 58%); background-size:100% 100%, 260% 260%;
+    background-position:0 0, calc(var(--mx)*100%) calc(var(--my)*100%); mix-blend-mode:soft-light; }
+  .l-holo .fx, .l-num .fx { background:
+      repeating-linear-gradient(115deg,#ff2d95 0%,#ffcf3a 6%,#3dffb0 12%,#38c8ff 18%,#9a4dff 24%,#ff2d95 30%),
+      repeating-radial-gradient(circle at 30% 30%, rgba(255,255,255,.25) 0 1px, transparent 1px 7px);
+    background-size:400% 400%, 100% 100%; background-position:calc(var(--mx)*100%) calc(var(--my)*100%), 0 0; mix-blend-mode:color-dodge; opacity:.45; }
+  .l-chrome .face { box-shadow:inset 0 0 0 5px #c9ced9, 0 0 0 1px rgba(0,0,0,.25); }
+  .l-chrome .ph img { filter:contrast(1.12) saturate(.7); }
+  .l-chrome .fx { background:linear-gradient(110deg,transparent 20%,rgba(255,255,255,.9) 32%,transparent 42%,transparent 58%,rgba(255,255,255,.65) 66%,transparent 76%),
+      linear-gradient(135deg,#7d8597,#e9edf5 30%,#8a92a5 50%,#f6f8fc 70%,#6c7385); background-size:300% 300%,100% 100%;
+    background-position:calc(var(--mx)*100%) calc(var(--my)*100%),0 0; mix-blend-mode:overlay; opacity:.85; }
+  .l-gold .face { box-shadow:inset 0 0 0 5px #e3b23c, 0 0 0 1px rgba(0,0,0,.25); }
+  .l-gold .fx { background:radial-gradient(circle at calc(var(--mx)*100%) calc(var(--my)*100%), rgba(255,236,150,.9), transparent 36%),
+      repeating-radial-gradient(circle at 70% 20%, rgba(255,215,90,.55) 0 1px, transparent 1px 5px),
+      linear-gradient(135deg, rgba(232,185,58,.35), rgba(255,241,168,.15), rgba(201,146,42,.35)); mix-blend-mode:overlay; }
+  .l-carbon .face { box-shadow:inset 0 0 0 5px #26292f, 0 0 0 1px rgba(0,0,0,.25); }
+  .l-carbon .fx { background:repeating-linear-gradient(45deg,rgba(255,255,255,.04) 0 3px,transparent 3px 6px),repeating-linear-gradient(-45deg,rgba(0,0,0,.16) 0 3px,transparent 3px 6px),
+      linear-gradient(115deg,transparent 30%,rgba(255,255,255,.4) 45%,transparent 58%); background-size:auto,auto,300% 300%;
+    background-position:0 0,0 0,calc(var(--mx)*100%) calc(var(--my)*100%); mix-blend-mode:overlay; }
+  .l-retro .ph img, .l-retro .ph svg { filter:sepia(.9) contrast(1.05) brightness(.92); }
+  .l-retro .face { background:#efe4c8; }
+  .l-retro .fx { background:repeating-radial-gradient(circle at 20% 30%, rgba(120,80,20,.14) 0 1px, transparent 1px 4px), radial-gradient(ellipse at center, transparent 50%, rgba(90,55,10,.5)); mix-blend-mode:multiply; }
+</style>
+</head>
+<body>
+<div class="top"><h1>АВТО<span>ТЕКА</span></h1><a href="../styles/#race">← все стили</a></div>
+
+<div id="stage">
+  <div id="shadow"></div>
+  <div id="scaler">
+    <div class="card r-epic l-holo" id="card">
+      <div class="face front">
+        <div class="ph"><svg viewBox="-25 -38 250 120" preserveAspectRatio="xMidYMax meet"><rect x="-400" y="68" width="1000" height="200" fill="#141a2b"/>
+          <path d="M10 58 L12 50 L60 44 L86 30 L124 30 L152 42 L190 48 L190 58 Z" fill="#f08a1c" stroke="rgba(0,0,0,.35)"/>
+          <circle cx="50" cy="58" r="11" fill="#0b0d12"/><circle cx="50" cy="58" r="5" fill="#9aa1b0"/><circle cx="150" cy="58" r="11" fill="#0b0d12"/><circle cx="150" cy="58" r="5" fill="#9aa1b0"/></svg>
+          <img id="img" alt="Lamborghini Miura"></div>
+        <div class="liv"></div><div class="num">131</div><div class="yr">1966</div>
+        <div class="rt" id="rt">Эпическая · Италия</div>
+        <div class="nm">Lamborghini Miura<div class="mk" id="mk">Lamborghini · Голография</div></div>
+        <div class="bars">
+          <div class="br"><span>МОЩНОСТЬ</span><span class="tr"><i style="width:80%"></i></span><b>350 л.с.</b></div>
+          <div class="br"><span>СКОРОСТЬ</span><span class="tr"><i style="width:67%"></i></span><b>280 км/ч</b></div>
+          <div class="br"><span>РАЗГОН</span><span class="tr"><i style="width:86%"></i></span><b>6,7 с</b></div>
+        </div>
+        <div class="chk"></div><div class="stamp">№ 07/100</div><div class="fx"></div><div class="glare"></div>
+      </div>
+      <div class="face back">
+        <div class="liv"></div><div class="chk"></div>
+        <div class="txt">
+          <div class="k">#131 · 1966 · ИТАЛИЯ</div>
+          <h3>Lamborghini Miura</h3>
+          <div>Её называют первым суперкаром: двенадцатицилиндровый мотор стоит поперёк прямо за спинами водителя и пассажира. Кузов нарисовал 27-летний Марчелло Гандини из ателье Bertone.</div>
+          <table>
+            <tr><td>Двигатель</td><td>V12, 3,9 л</td></tr>
+            <tr><td>Масса</td><td>≈ 980 кг</td></tr>
+            <tr><td>Тираж</td><td>≈ 764 шт.</td></tr>
+            <tr><td>Ламинирование</td><td id="blam">Голография</td></tr>
+          </table>
+        </div>
+        <div class="fx"></div><div class="glare"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="hint">Крутите карточку пальцем в любую сторону</div>
+
+<div class="panel">
+  <div class="lbl">Ламинирование</div>
+  <div class="chips" id="lams"></div>
+  <div class="ldesc" id="ldesc"></div>
+  <div class="lbl">Редкость (цвет ливреи)</div>
+  <div class="chips" id="rars"></div>
+  <div class="btns">
+    <button class="btn" id="spin">↻ Прокрутить</button>
+    <button class="btn" id="flip">⇆ Оборот</button>
+    <button class="btn acc" id="gyro">📱 Наклон телефона</button>
+    <button class="btn" id="own">🖼 Своё фото</button>
+  </div>
+  <input type="file" id="file" accept="image/*">
+  <div id="credit">Загружаю фото с Wikimedia Commons…</div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const card = document.getElementById('card'), stage = document.getElementById('stage'), scaler = document.getElementById('scaler'), shadow = document.getElementById('shadow');
+const img = document.getElementById('img'), credit = document.getElementById('credit');
+
+// ---------- options ----------
+const LAMS = [
+  ['matte','Матовая','Спокойная печать без бликов — базовый вариант.'],
+  ['gloss','Глянец','Яркий блик, который скользит по карточке при повороте.'],
+  ['holo','Голография','Радужный перелив и искры. Меняет цвет в зависимости от угла.'],
+  ['chrome','Хром','Зеркальная металлическая рамка и холодные блики.'],
+  ['carbon','Карбон','Плетение углеволокна и тёмная рамка, как у гоночных болидов.'],
+  ['retro','Ретро-печать','Сепия, бумажная фактура и потёртые края. Как карточка из прошлого века.'],
+  ['gold','Золотая фольга','Золотая рамка и искрящаяся фольга. Очень редкая.'],
+  ['num','Номерная','Голография плюс личный номер: таких карточек во всей игре только 100.'],
+];
+const RARS = [['common','Обычная','#9aa3b5'],['uncommon','Необычная','#3fc46e'],['rare','Редкая','#3d8bff'],['epic','Эпическая','#a855ff'],['legend','Легендарная','#ff9f1a'],['unique','Уникальная','#ff3d63']];
+let lam = 'holo', rar = 'epic';
+function apply() {
+  card.className = 'card r-' + rar + ' l-' + lam;
+  const L = LAMS.find(l => l[0] === lam), R = RARS.find(r => r[0] === rar);
+  document.getElementById('rt').textContent = R[1] + ' · Италия';
+  document.getElementById('mk').textContent = 'Lamborghini · ' + L[1];
+  document.getElementById('blam').textContent = L[1];
+  document.getElementById('ldesc').textContent = L[2];
+  for (const b of document.querySelectorAll('#lams .chip')) b.classList.toggle('on', b.dataset.v === lam);
+  for (const b of document.querySelectorAll('#rars .chip')) b.classList.toggle('on', b.dataset.v === rar);
+}
+for (const [v, n] of LAMS) { const b = document.createElement('button'); b.className = 'chip'; b.dataset.v = v; b.textContent = n; b.onclick = () => { lam = v; apply(); kick(); }; document.getElementById('lams').appendChild(b); }
+for (const [v, n, c] of RARS) { const b = document.createElement('button'); b.className = 'chip'; b.dataset.v = v; b.innerHTML = '<i style="background:' + c + '"></i>' + n; b.onclick = () => { rar = v; apply(); }; document.getElementById('rars').appendChild(b); }
+apply();
+
+// ---------- size ----------
+function fit() { const k = Math.min(1.35, (window.innerWidth * 0.8) / 290, (stage.clientHeight * 0.86) / 406); scaler.style.setProperty('--k', k.toFixed(3)); shadow.style.width = (240 * k) + 'px'; shadow.style.marginLeft = (-120 * k) + 'px'; }
+window.addEventListener('resize', fit); fit();
+
+// ---------- photo: Wikimedia Commons ----------
+const FILES = ['Lamborghini Miura P400 S Classic-Days 2022 DSC 0086.jpg', 'Lamborghini Miura P400 SV (26232842800).jpg'];
+const filePath = f => 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(f.replace(/ /g, '_')) + '?width=1000';
+const filePage = f => 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(f.replace(/ /g, '_'));
+async function creditFor(f) {
+  credit.innerHTML = 'Фото: <a href="' + filePage(f) + '" target="_blank" rel="noopener">Wikimedia Commons</a>';
+  try {
+    const q = await (await fetch('https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=extmetadata&titles=File:' + encodeURIComponent(f))).json();
+    const md = Object.values(q.query.pages)[0].imageinfo[0].extmetadata, strip = s => (s || '').replace(/<[^>]*>/g, '').trim().slice(0, 80);
+    credit.innerHTML = 'Фото: ' + (strip(md.Artist && md.Artist.value) || 'автор не указан') + ', ' + strip(md.LicenseShortName && md.LicenseShortName.value) +
+      ' · <a href="' + filePage(f) + '" target="_blank" rel="noopener">Wikimedia Commons</a>';
+  } catch (e) {}
+}
+async function viaSummary() {
+  const j = await (await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/Lamborghini_Miura?redirect=true')).json();
+  const src = j.thumbnail && j.thumbnail.source; if (!src || src.includes('/wikipedia/en/')) throw 0;
+  const m = src.match(/\/commons\/thumb\/[0-9a-f]\/[0-9a-f]{2}\/([^/]+)\//);
+  return { src: src.replace(/\/(\d+)px-/, '/1000px-'), file: m ? decodeURIComponent(m[1]) : null };
+}
+let tryIdx = 0, ownPhoto = false;
+function tryNext() {
+  if (ownPhoto) return;
+  if (tryIdx < FILES.length) { const f = FILES[tryIdx++]; img.onload = () => { img.classList.add('ok'); creditFor(f); }; img.onerror = tryNext; img.src = filePath(f); return; }
+  if (tryIdx === FILES.length) { tryIdx++;
+    viaSummary().then(r => { img.onload = () => { img.classList.add('ok'); if (r.file) creditFor(r.file); else credit.textContent = 'Фото: Wikimedia Commons'; }; img.onerror = tryNext; img.src = r.src; }).catch(tryNext); return; }
+  credit.innerHTML = 'Фото с Википедии не загрузилось — видимо, она у вас недоступна. Показан рисунок.<br>Нажмите «🖼 Своё фото», чтобы оценить ламинирование на настоящем снимке.';
+}
+tryNext();
+setTimeout(() => { if (!img.classList.contains('ok') && !ownPhoto && tryIdx <= FILES.length) credit.textContent = 'Фото загружается медленно…'; }, 6000);
+document.getElementById('own').onclick = () => document.getElementById('file').click();
+document.getElementById('file').onchange = e => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  ownPhoto = true; img.onload = () => img.classList.add('ok'); img.onerror = null; img.src = URL.createObjectURL(f);
+  credit.textContent = 'Ваше фото — видно только на этом устройстве, никуда не загружается.';
+};
+
+// ---------- rotation physics ----------
+let ry = -18, rx = 6, vy = 0, drag = null, last = performance.now(), idleT = 0, spinTo = null, gyro = null;
+stage.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, t: performance.now() }; vy = 0; spinTo = null; stage.setPointerCapture(e.pointerId); });
+stage.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const now = performance.now(), dx = e.clientX - drag.x, dy = e.clientY - drag.y, dt = Math.max(1, now - drag.t) / 1000;
+  ry += dx * 0.55; rx = Math.max(-35, Math.min(35, rx - dy * 0.35)); vy = (dx * 0.55) / dt * 0.6 + vy * 0.4;
+  drag = { x: e.clientX, y: e.clientY, t: now }; idleT = 0;
+});
+const end = () => { drag = null; }; stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+function kick() { if (drag) return; spinTo = Math.round(ry / 360) * 360 + 360; vy = 0; idleT = 0; }
+document.getElementById('spin').onclick = () => { spinTo = ry + 360; vy = 0; idleT = 0; };
+document.getElementById('flip').onclick = () => { spinTo = Math.round((ry + 180) / 180) * 180; vy = 0; idleT = 0; };
+
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (!drag) {
+    idleT += dt;
+    if (spinTo != null) { ry += (spinTo - ry) * Math.min(1, dt * 4.5); if (Math.abs(spinTo - ry) < 0.3) { ry = spinTo; spinTo = null; } }
+    else if (Math.abs(vy) > 8) { ry += vy * dt; vy *= Math.pow(0.12, dt); }
+    else {
+      vy = 0;
+      const face = Math.round(ry / 180) * 180;
+      let target = face;
+      if (gyro) target = face + gyro.g * 0.9; else target = face + Math.sin(now / 1400) * 14;
+      ry += (target - ry) * Math.min(1, dt * 3);
+    }
+    const tx = gyro ? Math.max(-30, Math.min(30, (gyro.b - 45) * 0.7)) : 6 + Math.sin(now / 1900) * 5;
+    rx += (tx - rx) * Math.min(1, dt * 2.5);
+  }
+  const rad = ry * Math.PI / 180;
+  let mx = 0.5 + Math.sin(rad) * 0.55; if (Math.cos(rad) < 0) mx = 1 - mx;
+  const my = 0.5 - rx / 50;
+  card.style.setProperty('--ry', ry.toFixed(2) + 'deg'); card.style.setProperty('--rx', rx.toFixed(2) + 'deg');
+  card.style.setProperty('--mx', Math.max(-0.2, Math.min(1.2, mx)).toFixed(3)); card.style.setProperty('--my', Math.max(-0.2, Math.min(1.2, my)).toFixed(3));
+  shadow.style.transform = 'scaleX(' + (0.35 + 0.65 * Math.abs(Math.cos(rad))).toFixed(3) + ')';
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---------- gyro ----------
+const gbtn = document.getElementById('gyro');
+function onOrient(e) { gyro = { g: Math.max(-40, Math.min(40, e.gamma || 0)), b: Math.max(0, Math.min(90, e.beta == null ? 45 : e.beta)) }; }
+gbtn.onclick = async () => {
+  if (gyro) { window.removeEventListener('deviceorientation', onOrient); gyro = null; gbtn.textContent = '📱 Наклон телефона'; return; }
+  try {
+    if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') { if (await DeviceOrientationEvent.requestPermission() !== 'granted') throw 0; }
+    window.addEventListener('deviceorientation', onOrient); gyro = { g: 0, b: 45 }; gbtn.textContent = '✋ Выключить наклон';
+  } catch (e) { gbtn.textContent = 'Наклон недоступен'; }
+};
+})();
+</script>
+</body>
+</html>
