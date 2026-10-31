@@ -1,6 +1,5 @@
-// Настройки онлайна (Supabase). Ключ publishable/anon — публичный, его можно хранить в репозитории.
-// Supabase → Project Settings → API (или Connect): скопируйте Project URL и publishable (anon) key.
+// Настройки онлайна (Supabase). Publishable-ключ публичный: доступ защищён правилами RLS из setup.sql.
 window.DAILY_CONFIG = {
-  supabaseUrl: '',   // например 'https://abcdefgh.supabase.co'
-  supabaseKey: ''    // 'sb_publishable_...' или длинный anon-ключ 'eyJ...'
+  supabaseUrl: 'https://zwrvgzvdmkvzykcbwimd.supabase.co',
+  supabaseKey: 'sb_publishable_q-duBfdbcikF9UoVcpfoSQ__HqDAXhS'
 };
