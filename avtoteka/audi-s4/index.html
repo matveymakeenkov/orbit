@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#07080c">
+<title>Автотека — Audi S4 (2018)</title>
+<style>
+  * { box-sizing:border-box; }
+  html,body { margin:0; min-height:100%; color:#e9ecf5; font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif; -webkit-tap-highlight-color:transparent;
+    background:radial-gradient(900px 520px at 50% 28%, #1c2233 0%, #07080c 70%) fixed #07080c; -webkit-user-select:none; user-select:none; }
+  .top { padding:calc(env(safe-area-inset-top) + 12px) 16px 0; display:flex; align-items:baseline; justify-content:space-between; }
+  .top h1 { margin:0; font-size:18px; font-weight:900; } .top h1 span { color:#4fd1ff; }
+  .top small { color:#69718a; font-size:12px; }
+  #stage { position:relative; height:min(66vh,600px); min-height:470px; display:flex; align-items:center; justify-content:center; touch-action:none; cursor:grab; perspective:1100px; }
+  #shadow { position:absolute; bottom:5%; left:50%; width:240px; height:26px; margin-left:-120px; border-radius:50%; background:radial-gradient(closest-side, rgba(0,0,0,.7), transparent); pointer-events:none; }
+  #scaler { transform:scale(var(--k,1)); transform-style:preserve-3d; }
+  .hint { text-align:center; color:#5d6580; font-size:12.5px; margin:-6px 0 6px; }
+  .panel { max-width:520px; margin:0 auto; padding:0 14px calc(env(safe-area-inset-bottom) + 30px); }
+  .lbl { font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:#5d6580; margin:14px 2px 7px; }
+  .tiers { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .tier { border:0; border-radius:12px; padding:10px 4px 8px; font:700 12.5px -apple-system,system-ui,sans-serif; background:#161b29; color:#cdd3e6; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .tier small { font-weight:600; font-size:10.5px; color:#69718a; }
+  .tier.on { background:#e9ecf5; color:#07080c; } .tier.on small { color:#4b5266; }
+  .tier i { width:22px; height:6px; border-radius:3px; margin-bottom:3px; }
+  .tdesc { font-size:13px; color:#a9b1c8; margin:9px 2px 0; min-height:36px; line-height:1.4; }
+  .btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px; }
+  .btn { border:0; border-radius:12px; padding:12px; font:700 14px -apple-system,system-ui,sans-serif; background:#1a2033; color:#e9ecf5; cursor:pointer; }
+  .btn.acc { background:#4fd1ff; color:#03121a; }
+  #credit { font-size:11.5px; color:#5d6580; text-align:center; margin-top:14px; line-height:1.45; }
+  #credit a { color:#8fb6ff; }
+  #file { display:none; }
+
+  /* ================= CARD: «ПРИБОРКА» ================= */
+  .card { --mx:.5; --my:.5; --ac:#4fd1ff; --bz:#262a33; width:290px; height:406px; position:relative; transform-style:preserve-3d;
+    transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)); will-change:transform; }
+  .face { position:absolute; inset:0; overflow:hidden; border-radius:18px; backface-visibility:hidden; -webkit-backface-visibility:hidden; background:#0a0c11;
+    box-shadow:0 0 0 1px rgba(255,255,255,.08); }
+  .back { transform:rotateY(180deg); }
+  .bezel { position:absolute; inset:0; border-radius:18px; padding:5px; background:var(--bzbg, var(--bz)); z-index:1; }
+  .glass { position:absolute; inset:5px; border-radius:14px; overflow:hidden; background:#07090d; z-index:2; }
+  .ph { position:absolute; left:0; right:0; top:0; height:60%; overflow:hidden; background:linear-gradient(#2a3147,#10131c); }
+  .ph img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 60%; opacity:0; transition:opacity .6s; }
+  .ph img.ok { opacity:1; }
+  .ph svg { position:absolute; left:0; right:0; bottom:8%; width:100%; height:70%; }
+  .ph::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(7,9,13,.55) 0%, transparent 22%, transparent 55%, #07090d 100%); }
+  .badge { position:absolute; left:10px; top:10px; z-index:5; display:flex; align-items:center; gap:6px; padding:5px 9px 5px 7px; border-radius:20px;
+    background:rgba(7,9,13,.6); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); font:800 10.5px -apple-system,system-ui,sans-serif; letter-spacing:1px; text-transform:uppercase; color:var(--ac);
+    border:1px solid rgba(255,255,255,.12); }
+  .badge i { width:8px; height:8px; border-radius:50%; background:var(--ac); box-shadow:0 0 8px var(--ac); }
+  .lcd { position:absolute; right:10px; top:10px; z-index:5; font:700 15px "SF Mono",Menlo,monospace; color:var(--ac); letter-spacing:1px;
+    background:rgba(7,9,13,.6); padding:4px 8px; border-radius:8px; border:1px solid rgba(255,255,255,.12); text-shadow:0 0 8px var(--ac); }
+  .title { position:absolute; left:14px; right:14px; top:46%; z-index:5; }
+  .title h2 { margin:0; font:900 30px -apple-system,system-ui,sans-serif; letter-spacing:.5px; line-height:1; color:#fff; text-shadow:0 2px 12px rgba(0,0,0,.6); }
+  .title div { margin-top:4px; font:600 11.5px -apple-system,system-ui,sans-serif; color:#aab3c8; letter-spacing:.6px; text-transform:uppercase; }
+  .dash { position:absolute; left:0; right:0; bottom:0; height:42%; z-index:4; padding:6px 12px 10px; display:grid; grid-template-columns:1fr 78px 1fr; align-items:center; }
+  .dash::before { content:""; position:absolute; left:12px; right:12px; top:0; height:1px; background:linear-gradient(90deg, transparent, var(--ac), transparent); opacity:.6; }
+  .gauge { position:relative; width:100%; aspect-ratio:1; max-width:96px; justify-self:center; }
+  .gauge svg { width:100%; height:100%; overflow:visible; }
+  .gauge .val { position:absolute; left:0; right:0; top:38%; text-align:center; font:800 17px "SF Mono",Menlo,monospace; color:#fff; }
+  .gauge .unit { position:absolute; left:0; right:0; top:60%; text-align:center; font:700 8.5px -apple-system,system-ui,sans-serif; color:#7c86a0; letter-spacing:1px; text-transform:uppercase; }
+  .mid { text-align:center; }
+  .mid b { display:block; font:800 24px "SF Mono",Menlo,monospace; color:var(--ac); text-shadow:0 0 10px var(--ac); line-height:1; }
+  .mid small { display:block; font:700 8.5px -apple-system,system-ui,sans-serif; color:#7c86a0; letter-spacing:1px; margin-top:4px; }
+  .mid .gear { margin-top:9px; font:800 11px "SF Mono",Menlo,monospace; color:#cfd6e8; border:1px solid rgba(255,255,255,.18); border-radius:6px; padding:3px 0; }
+  .strip { position:absolute; left:12px; right:12px; bottom:9px; z-index:5; display:flex; justify-content:space-between; font:700 9.5px "SF Mono",Menlo,monospace; color:#7c86a0; letter-spacing:.5px; }
+  .strip b { color:#cfd6e8; font-weight:800; }
+  .serial { position:absolute; right:10px; top:41px; z-index:6; font:800 10px "SF Mono",Menlo,monospace; color:#2a1a00; background:linear-gradient(135deg,#ffe27a,#c9922a); padding:3px 7px; border-radius:6px; display:none; }
+  .t-gold .serial { display:block; }
+  .fx, .glare { position:absolute; inset:0; pointer-events:none; z-index:20; border-radius:18px; }
+  .glare { background:radial-gradient(circle at calc(var(--mx)*100%) calc(var(--my)*100%), rgba(255,255,255,.28), transparent 45%); mix-blend-mode:overlay; }
+  .glassline { position:absolute; inset:0; z-index:19; pointer-events:none; border-radius:18px;
+    background:linear-gradient(115deg, transparent 40%, rgba(255,255,255,.07) 47%, transparent 54%); background-size:250% 250%; background-position:calc(var(--mx)*100%) 0; }
+
+  /* back */
+  .back .glass { padding:16px 15px; }
+  .back .k { font:700 10px "SF Mono",Menlo,monospace; color:var(--ac); letter-spacing:1.5px; }
+  .back h3 { margin:6px 0 10px; font:900 22px -apple-system,system-ui,sans-serif; }
+  .back p { margin:0; font-size:12.5px; line-height:1.42; color:#cfd6e8; }
+  .back .grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:10px; }
+  .back .cell { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.07); border-radius:9px; padding:6px 8px; }
+  .back .cell small { display:block; font:700 8.5px -apple-system,system-ui,sans-serif; color:#7c86a0; letter-spacing:1px; text-transform:uppercase; }
+  .back .cell b { font:800 13px "SF Mono",Menlo,monospace; color:#fff; }
+  .back .cr { position:absolute; left:15px; right:15px; bottom:9px; font-size:8.5px; color:#5d6580; line-height:1.35; }
+
+  /* ---------- tiers ---------- */
+  .t-std { --ac:#4fd1ff; --bz:#22262f; }
+  .t-silver { --ac:#e6ecf7; --bzbg:repeating-linear-gradient(90deg,#9aa2b1 0 1px,#c9cfda 1px 2px,#aeb5c2 2px 3px), linear-gradient(135deg,#7d8597,#eef1f7 45%,#8c94a6 70%,#d9dee8); }
+  .t-silver .fx { background:linear-gradient(110deg,transparent 25%,rgba(255,255,255,.55) 36%,transparent 46%); background-size:300% 300%; background-position:calc(var(--mx)*100%) calc(var(--my)*100%); mix-blend-mode:overlay; }
+  .t-holo { --ac:#ff7ad9; --bzbg:linear-gradient(135deg,#ff2d95,#ffcf3a,#3dffb0,#38c8ff,#9a4dff,#ff2d95); }
+  .t-holo .fx { background:repeating-linear-gradient(115deg,#ff2d95 0%,#ffcf3a 6%,#3dffb0 12%,#38c8ff 18%,#9a4dff 24%,#ff2d95 30%),
+      repeating-radial-gradient(circle at 30% 30%, rgba(255,255,255,.25) 0 1px, transparent 1px 7px);
+    background-size:400% 400%,100% 100%; background-position:calc(var(--mx)*100%) calc(var(--my)*100%),0 0; mix-blend-mode:color-dodge; opacity:.4; }
+  .t-gold { --ac:#ffd25a; --bzbg:linear-gradient(135deg,#6b4a0e 0%,#e8b93a 20%,#fff1a8 38%,#c9922a 55%,#ffe27a 72%,#8a6214 100%); }
+  .t-gold .fx { background:radial-gradient(circle at calc(var(--mx)*100%) calc(var(--my)*100%), rgba(255,236,150,.85), transparent 36%),
+      repeating-radial-gradient(circle at 70% 20%, rgba(255,215,90,.55) 0 1px, transparent 1px 5px); mix-blend-mode:overlay; }
+</style>
+</head>
+<body>
+<div class="top"><h1>АВТО<span>ТЕКА</span></h1><small>дизайн «Приборка»</small></div>
+
+<div id="stage"><div id="shadow"></div><div id="scaler">
+  <div class="card t-std" id="card">
+    <div class="face front">
+      <div class="bezel"></div>
+      <div class="glass">
+        <div class="ph">
+          <svg viewBox="0 0 200 70" preserveAspectRatio="xMidYMax meet"><path d="M8 52 L12 42 L50 37 L74 24 L132 24 L156 36 L190 41 L192 52 Z" fill="#3c4250" stroke="rgba(255,255,255,.2)"/>
+            <circle cx="48" cy="52" r="10" fill="#050608"/><circle cx="48" cy="52" r="5" fill="#8a91a0"/><circle cx="152" cy="52" r="10" fill="#050608"/><circle cx="152" cy="52" r="5" fill="#8a91a0"/></svg>
+          <img id="img" alt="Audi S4">
+        </div>
+        <div class="badge"><i></i><span id="tname">Стандарт</span></div>
+        <div class="lcd">2018</div>
+        <div class="serial">№ 0042</div>
+        <div class="title"><h2>Audi S4</h2><div>Седан · поколение B9 · Германия</div></div>
+        <div class="dash">
+          <div class="gauge" id="g1"></div>
+          <div class="mid"><b>4,7</b><small>СЕК 0–100</small><div class="gear">quattro</div></div>
+          <div class="gauge" id="g2"></div>
+        </div>
+        <div class="strip"><span>МАССА <b>≈1630 кг</b></span><span>V6 <b>3,0 TFSI</b></span></div>
+      </div>
+      <div class="glassline"></div><div class="fx"></div><div class="glare"></div>
+    </div>
+    <div class="face back">
+      <div class="bezel"></div>
+      <div class="glass">
+        <div class="k">БОРТОВОЙ КОМПЬЮТЕР · №204</div>
+        <h3>Audi S4 (B9)</h3>
+        <p>Спортивная версия A4. В поколении B9 механический нагнетатель сменила турбина, спрятанная прямо в развал блока V6: она раскручивается быстрее. Полный привод quattro — всегда.</p>
+        <div class="grid">
+          <div class="cell"><small>Мощность</small><b>354 л.с.</b></div>
+          <div class="cell"><small>Крутящий момент</small><b>500 Н·м</b></div>
+          <div class="cell"><small>Макс. скорость</small><b>250 км/ч*</b></div>
+          <div class="cell"><small>Коробка</small><b>8-ст. АКП</b></div>
+          <div class="cell"><small>Выпуск</small><b>2016–2019</b></div>
+          <div class="cell"><small>Покрытие</small><b id="bt">Стандарт</b></div>
+        </div>
+        <div class="cr"><span id="credit2">*ограничена электроникой.</span></div>
+      </div>
+      <div class="glassline"></div><div class="fx"></div><div class="glare"></div>
+    </div>
+  </div>
+</div></div>
+<div class="hint">Крутите карточку пальцем</div>
+
+<div class="panel">
+  <div class="lbl">Уровень карточки = покрытие</div>
+  <div class="tiers" id="tiers"></div>
+  <div class="tdesc" id="tdesc"></div>
+  <div class="btns">
+    <button class="btn" id="spin">↻ Прокрутить</button>
+    <button class="btn" id="flip">⇆ Оборот</button>
+    <button class="btn acc" id="gyro">📱 Наклон телефона</button>
+    <button class="btn" id="own">🖼 Своё фото</button>
+  </div>
+  <input type="file" id="file" accept="image/*">
+  <div id="credit">Ищу фото на Wikimedia Commons…</div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const card = document.getElementById('card'), stage = document.getElementById('stage'), scaler = document.getElementById('scaler'), shadow = document.getElementById('shadow');
+const img = document.getElementById('img'), credit = document.getElementById('credit');
+
+// ---------- gauges ----------
+function gauge(el, frac, value, unit, ticks) {
+  const cx = 50, cy = 50, r = 42, a0 = 135, span = 270;
+  const pt = (a, rr) => [cx + rr * Math.cos(a * Math.PI / 180), cy + rr * Math.sin(a * Math.PI / 180)];
+  const arc = (from, to, rr) => { const [x1, y1] = pt(from, rr), [x2, y2] = pt(to, rr); return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${rr} ${rr} 0 ${to - from > 180 ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`; };
+  const aEnd = a0 + span * frac;
+  let t = '';
+  for (let i = 0; i <= ticks; i++) { const a = a0 + span * i / ticks, [x1, y1] = pt(a, r - 9), [x2, y2] = pt(a, r - (i % 2 ? 6 : 4)); t += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#4b5266" stroke-width="1.2"/>`; }
+  const [nx, ny] = pt(aEnd, r - 12);
+  el.innerHTML = `<svg viewBox="0 0 100 100">
+    <path d="${arc(a0, a0 + span, r)}" fill="none" stroke="#1d2230" stroke-width="5" stroke-linecap="round"/>
+    <path d="${arc(a0, aEnd, r)}" fill="none" stroke="var(--ac)" stroke-width="5" stroke-linecap="round" style="filter:drop-shadow(0 0 3px var(--ac))"/>
+    ${t}<line x1="50" y1="50" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="#ff4d5e" stroke-width="2" stroke-linecap="round"/><circle cx="50" cy="50" r="3.5" fill="#ff4d5e"/></svg>
+    <div class="val">${value}</div><div class="unit">${unit}</div>`;
+}
+gauge(document.getElementById('g1'), Math.log10(355) / Math.log10(1501), '354', 'л.с.', 10);
+gauge(document.getElementById('g2'), 250 / 420, '250', 'км/ч', 10);
+
+// ---------- tiers ----------
+const TIERS = [
+  ['std', 'Стандарт', '80%', '#4fd1ff', 'Обычная печать. Тёмное стекло приборной панели с голубой подсветкой.'],
+  ['silver', 'Серебро', '15%', '#cfd6e2', 'Рамка из шлифованного алюминия и белая подсветка, как у дорогих комплектаций.'],
+  ['holo', 'Голография', '4%', '#ff7ad9', 'Радужная рамка и перелив по всей карточке. Меняет цвет при наклоне.'],
+  ['gold', 'Золото', '1%', '#ffd25a', 'Золотая рамка, искрящаяся фольга и личный номер экземпляра.'],
+];
+let tier = 'std';
+function apply() {
+  card.className = 'card t-' + tier;
+  const T = TIERS.find(x => x[0] === tier);
+  document.getElementById('tname').textContent = T[1]; document.getElementById('bt').textContent = T[1]; document.getElementById('tdesc').textContent = T[4];
+  for (const b of document.querySelectorAll('.tier')) b.classList.toggle('on', b.dataset.v === tier);
+}
+for (const [v, n, p, c] of TIERS) {
+  const b = document.createElement('button'); b.className = 'tier'; b.dataset.v = v;
+  b.innerHTML = `<i style="background:${c}"></i>${n}<small>${p}</small>`;
+  b.onclick = () => { tier = v; apply(); kick(); }; document.getElementById('tiers').appendChild(b);
+}
+apply();
+
+function fit() { const k = Math.min(1.35, (window.innerWidth * 0.8) / 290, (stage.clientHeight * 0.86) / 406); scaler.style.setProperty('--k', k.toFixed(3)); shadow.style.width = (240 * k) + 'px'; shadow.style.marginLeft = (-120 * k) + 'px'; }
+window.addEventListener('resize', fit); fit();
+
+// ---------- photo: pick a sedan photo from Commons category ----------
+let own = false;
+const strip = s => (s || '').replace(/<[^>]*>/g, '').trim().slice(0, 80);
+function show(url, page, md) {
+  if (own) return;
+  img.onload = () => img.classList.add('ok'); img.src = url;
+  const who = md ? strip(md.Artist && md.Artist.value) : '', lic = md ? strip(md.LicenseShortName && md.LicenseShortName.value) : '';
+  credit.innerHTML = 'Фото: ' + (who || 'Wikimedia Commons') + (lic ? ', ' + lic : '') + ' · <a href="' + page + '" target="_blank" rel="noopener">страница файла</a>';
+  document.getElementById('credit2').innerHTML = '*ограничена электроникой. Фото: ' + (who || 'Wikimedia Commons') + (lic ? ', ' + lic : '');
+}
+async function fromCategory() {
+  const api = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=categorymembers&gcmtitle=' +
+    encodeURIComponent('Category:Audi S4 (B9)') + '&gcmtype=file&gcmlimit=200&prop=imageinfo&iiprop=url|extmetadata|size&iiurlwidth=1000';
+  const j = await (await fetch(api)).json();
+  const files = Object.values((j.query && j.query.pages) || {}).filter(p => p.imageinfo && /\.jpe?g$/i.test(p.title));
+  const bad = /avant|interior|innen|cockpit|engine|motor|rear|heck|back|seat|wheel|felge|detail|logo|badge|dashboard|kombi|steering|lenkrad|trunk/i;
+  const good = files.filter(p => !bad.test(p.title) && p.imageinfo[0].width > p.imageinfo[0].height);
+  const score = p => (/limousine|sedan|saloon/i.test(p.title) ? 3 : 0) + (/front|frontansicht|front view|left|right|side/i.test(p.title) ? 2 : 0) + (/(2017|2018|2019)/.test(p.title) ? 1 : 0) - (/fl\b|facelift|2020|2021|2022/i.test(p.title) ? 2 : 0);
+  good.sort((a, b) => score(b) - score(a));
+  const p = good[0]; if (!p) throw 0;
+  const ii = p.imageinfo[0];
+  show(ii.thumburl || ii.url, ii.descriptionurl, ii.extmetadata);
+}
+async function fromSummary() {
+  const j = await (await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/Audi_S4?redirect=true')).json();
+  const src = j.thumbnail && j.thumbnail.source; if (!src || src.includes('/wikipedia/en/')) throw 0;
+  const m = src.match(/\/commons\/thumb\/[0-9a-f]\/[0-9a-f]{2}\/([^/]+)\//);
+  show(src.replace(/\/(\d+)px-/, '/1000px-'), m ? 'https://commons.wikimedia.org/wiki/File:' + m[1] : 'https://commons.wikimedia.org', null);
+}
+fromCategory().catch(() => fromSummary()).catch(() => {
+  if (!own) credit.innerHTML = 'Фото с Википедии не загрузилось — показан силуэт.<br>Нажмите «🖼 Своё фото», чтобы подставить снимок из галереи.';
+});
+document.getElementById('own').onclick = () => document.getElementById('file').click();
+document.getElementById('file').onchange = e => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  own = true; img.onload = () => img.classList.add('ok'); img.src = URL.createObjectURL(f);
+  credit.textContent = 'Ваше фото — видно только на этом устройстве, никуда не загружается.';
+};
+
+// ---------- rotation ----------
+let ry = -18, rx = 6, vy = 0, drag = null, last = performance.now(), spinTo = null, gyro = null;
+stage.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, t: performance.now() }; vy = 0; spinTo = null; stage.setPointerCapture(e.pointerId); });
+stage.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const now = performance.now(), dx = e.clientX - drag.x, dy = e.clientY - drag.y, dt = Math.max(1, now - drag.t) / 1000;
+  ry += dx * 0.55; rx = Math.max(-35, Math.min(35, rx - dy * 0.35)); vy = (dx * 0.55) / dt * 0.6 + vy * 0.4;
+  drag = { x: e.clientX, y: e.clientY, t: now };
+});
+const end = () => { drag = null; }; stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+function kick() { if (drag) return; spinTo = Math.round(ry / 360) * 360 + 360; vy = 0; }
+document.getElementById('spin').onclick = () => { spinTo = ry + 360; vy = 0; };
+document.getElementById('flip').onclick = () => { spinTo = Math.round((ry + 180) / 180) * 180; vy = 0; };
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (!drag) {
+    if (spinTo != null) { ry += (spinTo - ry) * Math.min(1, dt * 4.5); if (Math.abs(spinTo - ry) < 0.3) { ry = spinTo; spinTo = null; } }
+    else if (Math.abs(vy) > 8) { ry += vy * dt; vy *= Math.pow(0.12, dt); }
+    else { vy = 0; const face = Math.round(ry / 180) * 180; const target = gyro ? face + gyro.g * 0.9 : face + Math.sin(now / 1400) * 14; ry += (target - ry) * Math.min(1, dt * 3); }
+    const tx = gyro ? Math.max(-30, Math.min(30, (gyro.b - 45) * 0.7)) : 6 + Math.sin(now / 1900) * 5;
+    rx += (tx - rx) * Math.min(1, dt * 2.5);
+  }
+  const rad = ry * Math.PI / 180; let mx = 0.5 + Math.sin(rad) * 0.55; if (Math.cos(rad) < 0) mx = 1 - mx;
+  card.style.setProperty('--ry', ry.toFixed(2) + 'deg'); card.style.setProperty('--rx', rx.toFixed(2) + 'deg');
+  card.style.setProperty('--mx', Math.max(-0.2, Math.min(1.2, mx)).toFixed(3)); card.style.setProperty('--my', Math.max(-0.2, Math.min(1.2, 0.5 - rx / 50)).toFixed(3));
+  shadow.style.transform = 'scaleX(' + (0.35 + 0.65 * Math.abs(Math.cos(rad))).toFixed(3) + ')';
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+const gbtn = document.getElementById('gyro');
+function onOrient(e) { gyro = { g: Math.max(-40, Math.min(40, e.gamma || 0)), b: Math.max(0, Math.min(90, e.beta == null ? 45 : e.beta)) }; }
+gbtn.onclick = async () => {
+  if (gyro) { window.removeEventListener('deviceorientation', onOrient); gyro = null; gbtn.textContent = '📱 Наклон телефона'; return; }
+  try {
+    if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') { if (await DeviceOrientationEvent.requestPermission() !== 'granted') throw 0; }
+    window.addEventListener('deviceorientation', onOrient); gyro = { g: 0, b: 45 }; gbtn.textContent = '✋ Выключить наклон';
+  } catch (e) { gbtn.textContent = 'Наклон недоступен'; }
+};
+})();
+</script>
+</body>
+</html>
