@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Автотека">
+<meta name="theme-color" content="#0d1018">
+<title>Автотека — открыть пакетик</title>
+<style>
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; overflow:hidden; color:#e9ecf5; font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif; -webkit-tap-highlight-color:transparent;
+    -webkit-user-select:none; user-select:none; background:radial-gradient(900px 600px at 50% 35%, #232a45 0%, #0d1018 70%) #0d1018; }
+  .top { position:fixed; left:0; right:0; top:0; z-index:40; padding:calc(env(safe-area-inset-top) + 10px) 14px 8px; display:flex; align-items:center; justify-content:space-between; }
+  .top h1 { margin:0; font-size:18px; font-weight:900; } .top h1 span { color:#f2a20c; }
+  .pill { border:0; border-radius:16px; padding:7px 11px; font:700 12.5px -apple-system,system-ui,sans-serif; background:#1a2033; color:#cdd3e6; cursor:pointer; }
+  #scene { position:fixed; inset:0; padding:40px 0 120px; display:flex; align-items:center; justify-content:center; perspective:1200px; touch-action:none; }
+  #msg { position:fixed; left:12px; right:12px; bottom:calc(env(safe-area-inset-bottom) + 98px); line-height:1.35; text-align:center; color:#a9b1c8; font-size:14px; z-index:30; pointer-events:none; transition:opacity .3s; }
+  #bar { position:fixed; left:0; right:0; bottom:0; z-index:35; padding:10px 14px calc(env(safe-area-inset-bottom) + 14px); display:flex; gap:8px; justify-content:center; }
+  .btn { border:0; border-radius:14px; padding:13px 18px; font:800 15px -apple-system,system-ui,sans-serif; background:#1f2740; color:#e9ecf5; cursor:pointer; }
+  .btn.acc { background:#f2a20c; color:#1d1300; }
+  .hide { display:none !important; }
+
+  /* ---------- pack ---------- */
+  #pack { position:relative; width:220px; height:330px; transform-style:preserve-3d; cursor:pointer; transition:transform .4s; }
+  #pack .body { position:absolute; inset:0; border-radius:10px 10px 12px 12px; overflow:hidden;
+    background:linear-gradient(135deg,#2a2f4a 0%,#545b85 18%,#1b1f33 34%,#3d4470 52%,#14182a 70%,#4b5280 88%,#20253d 100%); box-shadow:0 30px 60px rgba(0,0,0,.6); }
+  #pack .body::before { content:""; position:absolute; inset:0; background:repeating-linear-gradient(115deg,#ff2d95 0%,#ffcf3a 6%,#3dffb0 12%,#38c8ff 18%,#9a4dff 24%,#ff2d95 30%);
+    background-size:400% 400%; background-position:var(--px,50%) 50%; mix-blend-mode:color-dodge; opacity:.25; }
+  #pack .crimp { position:absolute; left:0; right:0; height:16px; z-index:3; background:repeating-linear-gradient(90deg,#8a90b0 0 3px,#5d6385 3px 6px); }
+  #pack .crimp.t { top:0; border-radius:10px 10px 0 0; } #pack .crimp.b { bottom:0; border-radius:0 0 12px 12px; }
+  #pack .tear { position:absolute; left:0; right:0; top:0; height:40px; z-index:5; transition:transform .7s cubic-bezier(.3,.7,.3,1), opacity .7s; }
+  #pack .tear .crimp { top:0; } #pack .tear .strip { position:absolute; left:0; right:0; top:16px; height:24px; background:linear-gradient(135deg,#2a2f4a,#545b85,#1b1f33); border-bottom:2px dashed rgba(255,255,255,.35); }
+  #pack.torn .tear { transform:translate(60px,-120px) rotate(28deg); opacity:0; }
+  #pack .logo { position:absolute; left:0; right:0; top:84px; text-align:center; z-index:2; }
+  #pack .logo b { display:block; font:900 30px -apple-system,system-ui,sans-serif; letter-spacing:1px; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.4); }
+  #pack .logo b span { color:#f2a20c; }
+  #pack .logo small { display:block; margin-top:6px; font:800 11px -apple-system,system-ui,sans-serif; letter-spacing:3px; color:#c9cfe8; }
+  #pack .car { position:absolute; left:20px; right:20px; top:150px; height:70px; z-index:2; opacity:.9; }
+  #pack .cnt { position:absolute; left:50%; bottom:40px; transform:translateX(-50%); z-index:2; background:#f2a20c; color:#1d1300; font:900 13px -apple-system,system-ui,sans-serif; padding:7px 14px; border-radius:20px; letter-spacing:1px; white-space:nowrap; }
+  #pack.shake { animation:shake .5s; }
+  @keyframes shake { 0%,100% { transform:rotate(0) } 20% { transform:rotate(-5deg) } 40% { transform:rotate(5deg) } 60% { transform:rotate(-3deg) } 80% { transform:rotate(3deg) } }
+  #pack.gone { transform:translateY(120vh) rotate(8deg); transition:transform .8s cubic-bezier(.5,0,.7,.4); }
+
+  /* ---------- reveal stage ---------- */
+  #stack { position:absolute; width:290px; height:406px; transform:scale(var(--k,1)); }
+  .slot { position:absolute; inset:0; transition:transform .55s cubic-bezier(.2,.8,.2,1), opacity .4s; transform-style:preserve-3d; }
+  .slot.out { transform:translateY(-130vh) rotate(-10deg) !important; opacity:0; }
+  .rays { position:absolute; left:50%; top:50%; width:900px; height:900px; margin:-450px 0 0 -450px; pointer-events:none; opacity:0; transition:opacity .5s;
+    background:repeating-conic-gradient(from 0deg, var(--glow) 0deg 6deg, transparent 6deg 18deg); -webkit-mask:radial-gradient(circle, #000 0 18%, transparent 55%); mask:radial-gradient(circle, #000 0 18%, transparent 55%);
+    animation:spin 14s linear infinite; transform:translateZ(-120px); }
+  .slot.lit .rays { opacity:.55; }
+  @keyframes spin { to { rotate:360deg; } }
+  .cover { position:absolute; inset:0; border-radius:16px; z-index:30; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+    background:linear-gradient(145deg,#2b3150,#151a2b); border:2px solid rgba(255,255,255,.12); backface-visibility:hidden; -webkit-backface-visibility:hidden; transition:opacity .35s, transform .35s; }
+  .cover b { font:900 22px -apple-system,system-ui,sans-serif; letter-spacing:1px; } .cover b span { color:#f2a20c; }
+  .cover small { color:#8b93ab; font-weight:700; font-size:13px; }
+  .cover .q { width:70px; height:70px; border-radius:50%; border:3px dashed rgba(255,255,255,.25); display:flex; align-items:center; justify-content:center; font:900 34px -apple-system,system-ui,sans-serif; color:#8b93ab; }
+  .slot.revealed .cover { opacity:0; transform:scale(1.08); pointer-events:none; }
+  #flash { position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:50; transition:opacity .5s; }
+  #dots { position:fixed; left:0; right:0; bottom:calc(env(safe-area-inset-bottom) + 80px); display:flex; justify-content:center; gap:8px; z-index:30; }
+  #dots i { width:9px; height:9px; border-radius:50%; background:#2a3150; } #dots i.on { background:#e9ecf5; }
+
+  /* ---------- summary ---------- */
+  #summary { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:70px 10px 110px; }
+  #summary h2 { margin:0; font-size:20px; font-weight:900; }
+  #minis { display:flex; gap:8px; justify-content:center; margin-bottom:26px; }
+  .mini { width:calc(290px * var(--m)); height:calc(406px * var(--m)); position:relative; cursor:pointer; }
+  .mini > .card { transform-origin:0 0; transform:scale(var(--m)); position:absolute; left:0; top:0; }
+  .mini .tag { position:absolute; left:0; right:0; bottom:-22px; text-align:center; font-size:11px; font-weight:800; }
+  #coll { color:#8b93ab; font-size:13px; text-align:center; }
+  #odds { position:fixed; inset:0; z-index:60; background:rgba(5,7,12,.85); display:flex; align-items:center; justify-content:center; padding:20px; }
+  #odds .box { background:#151a29; border-radius:18px; padding:18px; max-width:380px; width:100%; font-size:13.5px; line-height:1.45; }
+  #odds h3 { margin:0 0 10px; } #odds table { width:100%; border-collapse:collapse; margin:8px 0 12px; }
+  #odds td { padding:5px 0; border-bottom:1px solid #232a40; } #odds td:last-child { text-align:right; font-weight:800; }
+
+  /* ================= CARD «ТЕХПАСПОРТ» ================= */
+  .card { --mx:.5; --my:.5; --rc:#8c95a8; width:290px; height:406px; position:relative; transform-style:preserve-3d;
+    transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)); transition:transform .12s; }
+  .card.flipped { transform:rotateX(var(--rx,0deg)) rotateY(calc(180deg + var(--ry,0deg))); transition:transform .6s cubic-bezier(.2,.8,.2,1); }
+  .card.unflip { transition:transform .6s cubic-bezier(.2,.8,.2,1); }
+  .face { position:absolute; inset:0; border-radius:16px; overflow:hidden; backface-visibility:hidden; -webkit-backface-visibility:hidden; color:#1d1a14;
+    background:
+      repeating-radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--rc) 9%, transparent) 0 1.5px, transparent 1.5px 9px),
+      repeating-radial-gradient(circle at 100% 100%, color-mix(in srgb, var(--rc) 9%, transparent) 0 1.5px, transparent 1.5px 9px),
+      linear-gradient(170deg,#f7f3e8,#ebe5d4);
+    box-shadow:0 22px 46px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.08); }
+  .back { transform:rotateY(180deg); }
+  .hdr { position:absolute; left:14px; right:14px; top:11px; display:flex; justify-content:space-between; align-items:center; font:700 9px "SF Mono",Menlo,monospace; letter-spacing:1px; color:#7a705c; }
+  .stars { color:var(--rc); font-size:13px; letter-spacing:1px; font-family:-apple-system,system-ui,sans-serif; }
+  .win { position:absolute; left:12px; right:12px; top:30px; height:47%; border-radius:10px; overflow:hidden; background:#1c2030; box-shadow:inset 0 0 0 1px rgba(0,0,0,.2); }
+  .win .bg { position:absolute; inset:-24px; background-size:cover; background-position:center; filter:blur(16px) saturate(1.1) brightness(.75); }
+  .win img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transition:opacity .5s; }
+  .win img.ok { opacity:1; }
+  .win.loaded svg { display:none; }
+  .win svg { position:absolute; left:6%; right:6%; bottom:10%; width:88%; height:60%; }
+  .win .yr { position:absolute; left:8px; bottom:8px; z-index:2; font:800 12px "SF Mono",Menlo,monospace; color:#fff; background:rgba(0,0,0,.55); padding:3px 7px; border-radius:6px; }
+  .plate { position:absolute; left:12px; right:12px; top:calc(30px + 47% + 10px); height:48px; background:#fff; border:3px solid #15130f; border-radius:8px; display:flex; overflow:hidden; box-shadow:0 2px 0 rgba(0,0,0,.15); }
+  .plate .cc { flex:none; width:34px; background:#1f4fbf; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:4px 0 3px; }
+  .plate .cc i { font-style:normal; font-size:9px; color:#ffd400; letter-spacing:-1px; }
+  .plate .cc b { font:900 11px -apple-system,system-ui,sans-serif; }
+  .plate .nm { flex:1; display:flex; align-items:center; justify-content:center; padding:0 8px; font-family:"DIN Condensed","Arial Narrow","Roboto Condensed",-apple-system,sans-serif; font-weight:800;
+    text-transform:uppercase; letter-spacing:.5px; color:#15130f; white-space:nowrap; overflow:hidden; font-stretch:condensed; }
+  .sub { position:absolute; left:14px; right:14px; top:calc(30px + 47% + 64px); font:600 10.5px -apple-system,system-ui,sans-serif; color:#6f6653; letter-spacing:.4px; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .flds { position:absolute; left:14px; right:14px; top:calc(30px + 47% + 82px); display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .fld small { display:block; font:700 8px -apple-system,system-ui,sans-serif; letter-spacing:.8px; color:#8a806b; text-transform:uppercase; }
+  .fld b { display:block; font:800 14.5px -apple-system,system-ui,sans-serif; border-bottom:1.5px dashed #b9b09a; padding-bottom:2px; white-space:nowrap; }
+  .rs { position:absolute; left:12px; right:12px; bottom:10px; height:22px; border-radius:6px; background:var(--rc); color:#fff; display:flex; align-items:center; justify-content:space-between; padding:0 9px;
+    font:800 9.5px -apple-system,system-ui,sans-serif; letter-spacing:1px; text-transform:uppercase; }
+  .fx, .glare { position:absolute; inset:0; pointer-events:none; z-index:20; border-radius:16px; }
+  .glare { background:radial-gradient(circle at calc(var(--mx)*100%) calc(var(--my)*100%), rgba(255,255,255,.22), transparent 45%); }
+  /* back */
+  .back .ttl { position:absolute; left:14px; right:14px; top:28px; font:900 13px -apple-system,system-ui,sans-serif; letter-spacing:.5px; text-transform:uppercase; }
+  .back .ttl small { display:block; font:600 9.5px "SF Mono",Menlo,monospace; color:#7a705c; letter-spacing:1px; margin-top:3px; }
+  .back table { position:absolute; left:14px; right:14px; top:66px; width:calc(100% - 28px); border-collapse:collapse; font-size:11.5px; }
+  .back td { padding:4.5px 0; border-bottom:1px dashed #c4bba5; vertical-align:top; }
+  .back td:first-child { color:#8a806b; width:16px; font:700 9px "SF Mono",Menlo,monospace; padding-top:6px; }
+  .back td:nth-child(2) { color:#6f6653; } .back td:last-child { text-align:right; font-weight:800; }
+  .note { position:absolute; left:14px; right:14px; top:228px; border:1.5px solid #c4bba5; border-radius:8px; padding:6px 8px 7px; font-size:11px; line-height:1.38; color:#3a3427; }
+  .note small { display:block; font:800 8px -apple-system,system-ui,sans-serif; letter-spacing:1px; color:#8a806b; margin-bottom:2px; }
+  .seal { position:absolute; right:16px; bottom:16px; width:70px; height:70px; border-radius:50%; border:2.5px solid var(--rc); color:var(--rc); transform:rotate(-14deg);
+    display:flex; align-items:center; justify-content:center; text-align:center; font:900 8px -apple-system,system-ui,sans-serif; letter-spacing:.5px; opacity:.85;
+    box-shadow:inset 0 0 0 3px #f1ecdf, inset 0 0 0 4.5px var(--rc); }
+  .code { position:absolute; left:14px; bottom:16px; }
+  .code .bars { width:120px; height:26px; background:repeating-linear-gradient(90deg,#15130f 0 1px,transparent 1px 3px,#15130f 3px 5px,transparent 5px 6px,#15130f 6px 7px,transparent 7px 10px); }
+  .code small { display:block; font:700 9px "SF Mono",Menlo,monospace; color:#5d5545; margin-top:4px; letter-spacing:.5px; }
+  .crd { position:absolute; left:14px; right:96px; bottom:58px; font-size:8px; color:#8a806b; line-height:1.3; }
+
+  /* rarity colours */
+  .r-mass { --rc:#7d879c; } .r-rare { --rc:#2f80ed; } .r-coll { --rc:#8e44ef; } .r-leg { --rc:#e8930a; }
+  /* finishes */
+  .f-holo .fx { background:repeating-linear-gradient(115deg,#ff2d95 0%,#ffcf3a 6%,#3dffb0 12%,#38c8ff 18%,#9a4dff 24%,#ff2d95 30%),
+      repeating-radial-gradient(circle at 30% 30%, rgba(255,255,255,.35) 0 1px, transparent 1px 7px);
+    background-size:400% 400%,100% 100%; background-position:calc(var(--mx)*100%) calc(var(--my)*100%),0 0; opacity:.24; }
+  .f-holo .plate { border-color:#5b3fd1; }
+  .f-gold .face { background:
+      repeating-radial-gradient(circle at 0% 0%, rgba(120,80,0,.12) 0 1.5px, transparent 1.5px 9px),
+      linear-gradient(135deg,#c99a2e 0%,#f6dc8a 25%,#fff4c4 42%,#d9aa3e 60%,#f9e29a 80%,#b88a22 100%); }
+  .f-gold .plate { border-color:#7a5608; background:#fffaf0; }
+  .f-gold .fld b { border-color:#a07d2a; } .f-gold .hdr, .f-gold .sub, .f-gold .fld small { color:#5c4310; }
+  .f-gold .fx { background:radial-gradient(circle at calc(var(--mx)*100%) calc(var(--my)*100%), rgba(255,250,210,.55), transparent 38%),
+      radial-gradient(rgba(255,255,255,.45) .8px, transparent 1.2px) 0 0/7px 7px; opacity:.45; }
+  .fin { position:absolute; right:18px; top:38px; z-index:5; font:900 9.5px -apple-system,system-ui,sans-serif; letter-spacing:1px; padding:4px 8px; border-radius:6px; color:#fff; transform:rotate(-6deg); }
+  .f-holo .fin { background:linear-gradient(135deg,#ff2d95,#ffcf3a,#3dffb0,#38c8ff,#9a4dff); }
+  .f-gold .fin { background:linear-gradient(135deg,#7a5608,#e8b93a,#fff1a8,#c9922a); color:#2a1a00; }
+  .f-std .fin { display:none; }
+</style>
+</head>
+<body>
+<div class="top"><h1>АВТО<span>ТЕКА</span></h1><div style="display:flex;gap:6px"><button class="pill" id="oddsBtn">Шансы</button></div></div>
+
+<div id="scene">
+  <div id="pack">
+    <div class="body"></div>
+    <div class="crimp b"></div>
+    <div class="tear"><div class="crimp"></div><div class="strip"></div></div>
+    <div class="logo"><b>АВТО<span>ТЕКА</span></b><small>СЕРИЯ «КЛАССИКА»</small></div>
+    <svg class="car" viewBox="0 0 200 70"><path d="M10 56 L12 48 L60 42 L86 28 L124 28 L152 40 L190 46 L190 56 Z" fill="#f2a20c"/><circle cx="50" cy="56" r="10" fill="#0d1018"/><circle cx="150" cy="56" r="10" fill="#0d1018"/></svg>
+    <div class="cnt">3 КАРТОЧКИ</div>
+  </div>
+  <div id="stack" class="hide"></div>
+</div>
+<div id="flash"></div>
+<div id="dots" class="hide"></div>
+<div id="summary" class="hide"><h2>Ваши карточки</h2><div id="minis"></div><div id="coll"></div></div>
+<div id="msg">Нажмите на пакетик, чтобы открыть</div>
+<div id="bar"><button class="btn acc hide" id="next">Дальше →</button><button class="btn acc hide" id="again">Открыть ещё пакетик</button></div>
+<div id="odds" class="hide"><div class="box">
+  <h3>Шансы</h3>
+  <div>В пакетике 3 карточки. Третья — гарантированно «Редкая» или лучше.</div>
+  <table>
+    <tr><td>★ Массовая (тираж больше 100 тыс.)</td><td>70% · —</td></tr>
+    <tr><td>★★ Редкая (5–100 тыс.)</td><td>22% · 80%</td></tr>
+    <tr><td>★★★ Коллекционная (100–5000)</td><td>7% · 17%</td></tr>
+    <tr><td>★★★★ Легенда (меньше 100)</td><td>1% · 3%</td></tr>
+  </table>
+  <div style="color:#8b93ab;font-size:12px;margin-top:-6px">Первое число — шанс для 1-й и 2-й карточки, второе — для 3-й.</div>
+  <table>
+    <tr><td>Стандарт</td><td>88%</td></tr>
+    <tr><td>🌈 Голография</td><td>10%</td></tr>
+    <tr><td>✨ Золото (номерное)</td><td>2%</td></tr>
+  </table>
+  <div style="color:#8b93ab;font-size:12px">Покрытие выпадает для каждой карточки отдельно и не зависит от редкости.</div>
+  <button class="btn" style="width:100%;margin-top:14px" id="oddsClose">Понятно</button>
+</div></div>
+
+<script>
+(() => {
+'use strict';
+const RAR = { mass:['Массовая','★'], rare:['Редкая','★★'], coll:['Коллекционная','★★★'], leg:['Легенда','★★★★'] };
+const FIN = { std:'Стандарт', holo:'Голография', gold:'Золото' };
+const CC = { 'Германия':'D', 'США':'USA', 'СССР':'SU', 'Италия':'I', 'Франция':'F', 'Великобритания':'GB', 'Япония':'J' };
+// [id, name, maker, country, year, wiki, rarity, hp, 0-100, top, mass, production, fact, body]
+const CARS = [
+  ['model-t','Ford Model T','Ford','США',1908,'Ford_Model_T','mass','20 л.с.','—','≈70','≈540 кг','≈15 млн','С 1913 года её собирали на конвейере: сборка одной машины сократилась с 12 часов до полутора.','veteran'],
+  ['vaz-2101','ВАЗ-2101','АвтоВАЗ','СССР',1970,'VAZ-2101','mass','64 л.с.','22 с','142','955 кг','≈2,7 млн','«Копейка» создана на основе Fiat 124, но получила больше восьмисот изменений под советские дороги и морозы.','sedan'],
+  ['gaz-21','ГАЗ-21 «Волга»','ГАЗ','СССР',1956,'GAZ-21','mass','70 л.с.','34 с','130','1460 кг','≈639 тыс.','Символ советского достатка. На капоте ранних машин — фигурка прыгающего оленя.','sedan'],
+  ['beetle','Volkswagen Käfer','Volkswagen','Германия',1938,'Volkswagen_Beetle','mass','25 л.с.','—','≈100','≈730 кг','≈21,5 млн','Самый массовый автомобиль одной платформы в истории. Последний «Жук» собрали в Мексике в 2003 году.','beetle'],
+  ['fiat-500','Fiat 500','Fiat','Италия',1957,'Fiat_500_(1957)','mass','13 л.с.','—','≈85','≈470 кг','≈3,9 млн','Длина меньше трёх метров. Этой малолитражкой Италия пересела со скутеров на автомобили.','beetle'],
+  ['mini','Mini','BMC','Великобритания',1959,'Mini','mass','34 л.с.','—','≈116','≈620 кг','≈5,3 млн','Алек Иссигонис поставил мотор поперёк, чтобы 80% длины машины досталось людям и багажу.','hatch'],
+  ['zaz-965','ЗАЗ-965 «Запорожец»','ЗАЗ','СССР',1960,'ZAZ-965','mass','23 л.с.','—','≈80','≈640 кг','≈322 тыс.','«Горбатый»: двигатель воздушного охлаждения сзади, поэтому машину не нужно было прогревать зимой водой.','beetle'],
+  ['porsche-911','Porsche 911','Porsche','Германия',1964,'Porsche_911_(classic)','rare','130 л.с.','9,1 с','210','1080 кг','≈80 тыс.','Сначала модель называлась 901, но Peugeot заявила права на трёхзначные названия с нулём посередине.','coupe911'],
+  ['audi-s4','Audi S4 (B9)','Audi','Германия',2018,'Audi_S4','rare','354 л.с.','4,7 с','250*','≈1630 кг','десятки тыс.','Турбина спрятана прямо в развале блока V6, поэтому раскручивается быстрее. Полный привод quattro — всегда.','sedan'],
+  ['e-type','Jaguar E-Type','Jaguar','Великобритания',1961,'Jaguar_E-Type','rare','265 л.с.','≈7 с','≈240','≈1220 кг','≈72,5 тыс.','Говорят, Энцо Феррари назвал её самым красивым автомобилем из когда-либо созданных.','coupe'],
+  ['r34','Nissan Skyline GT-R R34','Nissan','Япония',1999,'Nissan_Skyline_GT-R','rare','280 л.с.','≈5 с','≈250','≈1560 кг','≈11,5 тыс.','Официально 280 л.с. — по «джентльменскому соглашению» японских автопроизводителей. На деле мотор выдавал больше.','coupe'],
+  ['300sl','Mercedes-Benz 300 SL','Mercedes-Benz','Германия',1954,'Mercedes-Benz_300_SL','coll','215 л.с.','≈9 с','до 260','1295 кг','≈1400','Двери «крыло чайки» появились из-за высокого трубчатого каркаса: обычным дверям не хватало места.','coupe'],
+  ['miura','Lamborghini Miura','Lamborghini','Италия',1966,'Lamborghini_Miura','coll','350 л.с.','6,7 с','≈280','≈980 кг','≈764','Первый суперкар: V12 стоит поперёк прямо за спинами водителя и пассажира.','mid'],
+  ['chiron','Bugatti Chiron','Bugatti','Франция',2016,'Bugatti_Chiron','coll','1500 л.с.','2,4 с','420*','1995 кг','500','В 2019 году доработанный Chiron первым из серийных машин превысил 300 миль в час — 490 км/ч.','hyper'],
+  ['2000gt','Toyota 2000GT','Toyota','Япония',1967,'Toyota_2000GT','coll','150 л.с.','≈10 с','≈220','≈1120 кг','351','Первый японский суперкар. Две машины без крыши построили специально для съёмок фильма.','coupe'],
+  ['stratos','Lancia Stratos HF','Lancia','Италия',1973,'Lancia_Stratos','coll','190 л.с.','≈7 с','≈230','≈980 кг','≈492','Создана ради ралли и трижды подряд выиграла чемпионат мира — в 1974–1976 годах.','mid'],
+  ['mclaren-f1','McLaren F1','McLaren','Великобритания',1992,'McLaren_F1','coll','627 л.с.','3,2 с','386','1140 кг','106','Водитель сидит по центру. В 1998 году F1 разогнался до 386 км/ч и надолго стал самой быстрой серийной машиной.','mid'],
+  ['zil-111','ЗИЛ-111','ЗИЛ','СССР',1958,'ZIL-111','coll','200 л.с.','—','≈170','≈2600 кг','≈112','Собирался почти вручную для высших руководителей СССР. Купить его было невозможно ни за какие деньги.','limo'],
+  ['250gto','Ferrari 250 GTO','Ferrari','Италия',1962,'Ferrari_250_GTO','leg','300 л.с.','≈5,8 с','≈280','≈880 кг','36','Энцо Феррари лично одобрял каждого покупателя. В 2018 году экземпляр ушёл с аукциона за 48 млн долларов.','coupe'],
+  ['300slr','Mercedes-Benz 300 SLR «Уленгаут»','Mercedes-Benz','Германия',1955,'Mercedes-Benz_300_SLR','leg','302 л.с.','—','≈290','—','2','Инженер Рудольф Уленгаут ездил на ней на работу. В 2022 году её продали за 135 млн евро — дороже любой машины в истории.','coupe'],
+  ['motorwagen','Benz Patent-Motorwagen','Benz & Cie','Германия',1886,'Benz_Patent-Motorwagen','leg','0,75 л.с.','—','16','≈265 кг','≈25','Первый серийный автомобиль. В 1888 году Берта Бенц проехала на нём больше 100 км, покупая топливо в аптеке.','veteran3'],
+].map(a => ({ id:a[0], name:a[1], maker:a[2], country:a[3], year:a[4], wiki:a[5], rar:a[6], hp:a[7], acc:a[8], top:a[9], mass:a[10], prod:a[11], fact:a[12], body:a[13] }));
+
+const BODY = {
+  veteran3:'M30 52 L40 30 L95 30 L105 22 L120 22 L118 32 L150 34 L160 52 Z', veteran:'M22 56 L28 40 L62 40 L66 22 L118 22 L122 38 L165 42 L176 56 Z',
+  sedan:'M14 58 L18 46 L52 42 L68 26 L130 26 L146 42 L182 46 L186 58 Z', beetle:'M20 58 L24 44 Q40 22 100 20 Q150 22 172 44 L178 58 Z',
+  hatch:'M24 58 L26 44 L56 40 L70 24 L150 24 L162 40 L176 44 L176 58 Z', coupe911:'M14 58 L18 46 L58 40 L84 26 L120 26 L162 44 L186 50 L186 58 Z',
+  coupe:'M10 58 L14 48 L70 42 L96 28 L126 28 L148 42 L186 48 L190 58 Z', mid:'M10 58 L12 50 L60 44 L86 30 L124 30 L152 42 L190 48 L190 58 Z',
+  hyper:'M8 58 L12 48 L56 44 L84 30 L128 30 L160 42 L192 48 L192 58 Z', limo:'M6 58 L10 46 L48 42 L66 26 L140 26 L156 42 L192 46 L194 58 Z',
+};
+function silhouette(c) {
+  const w = c.body === 'veteran3' ? [[48,54,9],[146,54,9]] : c.body === 'veteran' ? [[46,56,11],[150,56,11]] : [[50,58,11],[150,58,11]];
+  return `<svg viewBox="0 0 200 72"><path d="${BODY[c.body]}" fill="#c9cfdc" opacity=".85"/>${w.map(([x,y,r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#0d1018"/><circle cx="${x}" cy="${y}" r="${r*.42}" fill="#8a91a0"/>`).join('')}</svg>`;
+}
+const photos = {};
+function getPhoto(c) {
+  if (!photos[c.id]) photos[c.id] = (async () => {
+    const r = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(c.wiki) + '?redirect=true');
+    if (!r.ok) throw 0; const j = await r.json(); const src = j.thumbnail && j.thumbnail.source;
+    if (!src || src.includes('/wikipedia/en/')) throw 0;
+    const m = src.match(/\/commons\/thumb\/[0-9a-f]\/[0-9a-f]{2}\/([^/]+)\//);
+    let credit = 'Фото: Wikimedia Commons';
+    if (m) try {
+      const file = decodeURIComponent(m[1]);
+      const q = await (await fetch('https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=extmetadata&titles=File:' + encodeURIComponent(file))).json();
+      const md = Object.values(q.query.pages)[0].imageinfo[0].extmetadata, s = x => (x || '').replace(/<[^>]*>/g, '').trim().slice(0, 60);
+      credit = 'Фото: ' + (s(md.Artist && md.Artist.value) || 'автор не указан') + ', ' + s(md.LicenseShortName && md.LicenseShortName.value) + ', Wikimedia Commons';
+    } catch (e) {}
+    return { src: src.replace(/\/(\d+)px-/, '/800px-'), credit };
+  })();
+  photos[c.id].catch(() => {});
+  return photos[c.id];
+}
+
+// ---------- card markup ----------
+function cardHTML(c, fin, serial) {
+  const n = c.name.length, fs = n <= 12 ? 25 : n <= 16 ? 21 : n <= 21 ? 17 : n <= 26 ? 14 : 12;
+  const R = RAR[c.rar];
+  return `<div class="card r-${c.rar} f-${fin}">
+    <div class="face front">
+      <div class="hdr"><span>АВТОТЕКА · №${serial}</span><span class="stars">${R[1]}</span></div>
+      <div class="win"><div class="bg"></div>${silhouette(c)}<img alt=""><span class="yr">${c.year}</span></div>
+      <div class="fin">${fin === 'gold' ? 'ЗОЛОТО · №' + serial : FIN[fin].toUpperCase()}</div>
+      <div class="plate"><div class="cc"><i>★★★</i><b>${CC[c.country] || ''}</b></div><div class="nm" style="font-size:${fs}px">${c.name}</div></div>
+      <div class="sub">${c.maker} · ${c.country} · ${c.year}</div>
+      <div class="flds"><div class="fld"><small>Мощность</small><b>${c.hp}</b></div><div class="fld"><small>0–100 км/ч</small><b>${c.acc}</b></div><div class="fld"><small>Макс. км/ч</small><b>${c.top}</b></div></div>
+      <div class="rs"><span>${R[0]}</span><span>выпущено ${c.prod}</span></div>
+      <div class="fx"></div><div class="glare"></div>
+    </div>
+    <div class="face back">
+      <div class="hdr"><span>АВТОТЕКА</span><span class="stars">${R[1]}</span></div>
+      <div class="ttl">Свидетельство о регистрации<small>КАРТОЧКИ № ${serial} · ${FIN[fin].toUpperCase()}</small></div>
+      <table>
+        <tr><td>1</td><td>Марка, модель</td><td>${c.name}</td></tr>
+        <tr><td>2</td><td>Производитель</td><td>${c.maker}</td></tr>
+        <tr><td>3</td><td>Страна</td><td>${c.country}</td></tr>
+        <tr><td>4</td><td>Год выпуска</td><td>${c.year}</td></tr>
+        <tr><td>5</td><td>Масса</td><td>${c.mass}</td></tr>
+        <tr><td>6</td><td>Тираж</td><td>${c.prod}</td></tr>
+      </table>
+      <div class="note"><small>ОСОБЫЕ ОТМЕТКИ</small>${c.fact}</div>
+      <div class="crd"></div>
+      <div class="code"><div class="bars"></div><small>${c.id.toUpperCase()}-${serial}</small></div>
+      <div class="seal"><div>АВТОТЕКА<br>${R[1]}<br>${R[0].toUpperCase()}</div></div>
+      <div class="fx"></div><div class="glare"></div>
+    </div></div>`;
+}
+function fitPlate(root) {
+  for (const el of root.querySelectorAll('.plate .nm')) { let fs = parseFloat(el.style.fontSize) || 20; while (el.scrollWidth > el.clientWidth + 1 && fs > 9) { fs -= .5; el.style.fontSize = fs + 'px'; } }
+}
+function hydrate(root, c) {
+  requestAnimationFrame(() => fitPlate(root));
+  const img = root.querySelector('img'), bg = root.querySelector('.win .bg'), crd = root.querySelector('.crd');
+  getPhoto(c).then(p => { img.onload = () => { img.classList.add('ok'); img.parentNode.classList.add('loaded'); bg.style.backgroundImage = `url('${p.src}')`; }; img.src = p.src; crd.textContent = p.credit; })
+    .catch(() => { crd.textContent = 'Фото недоступно — показан силуэт.'; });
+}
+
+// ---------- draw ----------
+const roll = t => { let x = Math.random(), a = 0; for (const [k, p] of t) { a += p; if (x < a) return k; } return t[t.length - 1][0]; };
+const SLOT = [['mass', .70], ['rare', .22], ['coll', .07], ['leg', .01]], GUAR = [['rare', .80], ['coll', .17], ['leg', .03]], FINS = [['std', .88], ['holo', .10], ['gold', .02]];
+let col = {}; try { col = JSON.parse(localStorage.getItem('avtoteka_col') || '{}'); } catch (e) {}
+let counter = 0; try { counter = +localStorage.getItem('avtoteka_serial') || 0; } catch (e) {}
+function drawPack() {
+  const out = [];
+  for (let i = 0; i < 3; i++) {
+    const r = roll(i < 2 ? SLOT : GUAR), pool = CARS.filter(c => c.rar === r);
+    const car = pool[Math.random() * pool.length | 0], fin = location.hash === '#demo' ? ['holo', 'gold', 'std'][i] : roll(FINS);
+    counter++; const serial = String(counter).padStart(5, '0');
+    out.push({ car, fin, serial, isNew: !col[car.id] });
+    col[car.id] = (col[car.id] || 0) + 1;
+  }
+  try { localStorage.setItem('avtoteka_col', JSON.stringify(col)); localStorage.setItem('avtoteka_serial', counter); } catch (e) {}
+  return out;
+}
+
+// ---------- flow ----------
+const pack = document.getElementById('pack'), stack = document.getElementById('stack'), msg = document.getElementById('msg'), flash = document.getElementById('flash');
+const nextBtn = document.getElementById('next'), againBtn = document.getElementById('again'), dots = document.getElementById('dots'), summary = document.getElementById('summary');
+let state = 'pack', cards = [], idx = 0;
+function fit() { const k = Math.min(1.25, (innerWidth * .82) / 290, (innerHeight - 290) / 406); stack.style.setProperty('--k', k.toFixed(3)); }
+addEventListener('resize', fit); fit();
+const rank = { mass:0, rare:1, coll:2, leg:3 }, GLOW = { mass:'rgba(160,170,190,.35)', rare:'rgba(47,128,237,.5)', coll:'rgba(142,68,239,.6)', leg:'rgba(255,190,40,.75)' };
+
+pack.addEventListener('click', () => {
+  if (state !== 'pack') return;
+  state = 'opening'; msg.style.opacity = 0;
+  cards = drawPack(); cards.forEach(x => getPhoto(x.car));
+  pack.classList.add('shake');
+  setTimeout(() => { pack.classList.remove('shake'); pack.classList.add('torn'); }, 500);
+  setTimeout(() => { pack.classList.add('gone'); buildStack(); }, 1150);
+});
+function buildStack() {
+  stack.innerHTML = ''; stack.classList.remove('hide'); idx = 0;
+  // reveal the best card last
+  cards.sort((a, b) => (rank[a.car.rar] + (a.fin !== 'std' ? .5 : 0)) - (rank[b.car.rar] + (b.fin !== 'std' ? .5 : 0)));
+  cards.forEach((x, i) => {
+    const s = document.createElement('div'); s.className = 'slot'; s.style.zIndex = 10 - i;
+    s.style.transform = `translateY(${i * 10}px) rotate(${(i - 1) * 2.5}deg) scale(${1 - i * .03})`;
+    s.style.setProperty('--glow', GLOW[x.car.rar]);
+    s.innerHTML = `<div class="rays"></div>${cardHTML(x.car, x.fin, x.serial)}<div class="cover"><div class="q">?</div><b>АВТО<span>ТЕКА</span></b><small>Нажмите, чтобы открыть</small></div>`;
+    hydrate(s, x.car); stack.appendChild(s); x.el = s;
+    attachTilt(s);
+  });
+  dots.innerHTML = cards.map((_, i) => `<i class="${i === 0 ? 'on' : ''}"></i>`).join(''); dots.classList.remove('hide');
+  state = 'reveal'; msg.textContent = 'Нажмите на карточку'; msg.style.opacity = 1;
+}
+function attachTilt(slot) {
+  const card = slot.querySelector('.card');
+  slot.addEventListener('pointermove', e => {
+    const r = slot.getBoundingClientRect(), mx = (e.clientX - r.left) / r.width, my = (e.clientY - r.top) / r.height;
+    card.style.setProperty('--mx', mx.toFixed(3)); card.style.setProperty('--my', my.toFixed(3));
+    card.style.setProperty('--ry', ((mx - .5) * 22).toFixed(1) + 'deg'); card.style.setProperty('--rx', ((.5 - my) * 16).toFixed(1) + 'deg');
+  });
+  slot.addEventListener('pointerleave', () => { card.style.setProperty('--ry', '0deg'); card.style.setProperty('--rx', '0deg'); });
+  slot.addEventListener('click', () => {
+    if (state !== 'reveal' || cards[idx].el !== slot) return;
+    if (!slot.classList.contains('revealed')) return reveal(slot);
+    card.classList.remove('unflip'); if (card.classList.contains('flipped')) { card.classList.remove('flipped'); card.classList.add('unflip'); } else card.classList.add('flipped');
+  });
+}
+function reveal(slot) {
+  const x = cards[idx];
+  slot.style.transform = 'none'; slot.classList.add('revealed');
+  if (rank[x.car.rar] >= 2 || x.fin !== 'std') { slot.classList.add('lit'); }
+  if (x.car.rar === 'leg' || x.fin === 'gold') { flash.style.transition = 'none'; flash.style.opacity = .85; requestAnimationFrame(() => { flash.style.transition = 'opacity .9s'; flash.style.opacity = 0; }); }
+  vibe(x);
+  const parts = [RAR[x.car.rar][1] + ' ' + RAR[x.car.rar][0]]; if (x.fin !== 'std') parts.push(x.fin === 'gold' ? '✨ ЗОЛОТО!' : '🌈 Голография!'); if (x.isNew) parts.push('Новая в коллекции');
+  msg.textContent = parts.join(' · ') + ' — нажмите, чтобы перевернуть';
+  nextBtn.textContent = idx < cards.length - 1 ? 'Следующая →' : 'Посмотреть все';
+  nextBtn.classList.remove('hide');
+}
+function vibe(x) { try { if (navigator.vibrate) navigator.vibrate(x.car.rar === 'leg' || x.fin === 'gold' ? [60, 40, 120] : 30); } catch (e) {} }
+nextBtn.onclick = () => {
+  const cur = cards[idx]; cur.el.classList.add('out'); nextBtn.classList.add('hide');
+  idx++;
+  if (idx < cards.length) {
+    cards.forEach((x, i) => { if (i >= idx) x.el.style.transform = `translateY(${(i - idx) * 10}px) rotate(${(i - idx - 1) * 2.5}deg) scale(${1 - (i - idx) * .03})`; });
+    [...dots.children].forEach((d, i) => d.classList.toggle('on', i === idx));
+    msg.textContent = idx === cards.length - 1 ? 'Последняя карточка — самая ценная в пакетике' : 'Нажмите на карточку';
+  } else showSummary();
+};
+function showSummary() {
+  state = 'summary'; stack.classList.add('hide'); dots.classList.add('hide'); msg.style.opacity = 0;
+  const m = Math.min(.38, (innerWidth - 40) / (290 * 3 + 16));
+  const minis = document.getElementById('minis'); minis.innerHTML = '';
+  cards.forEach(x => {
+    const d = document.createElement('div'); d.className = 'mini'; d.style.setProperty('--m', m);
+    d.innerHTML = cardHTML(x.car, x.fin, x.serial) + `<div class="tag" style="color:${x.isNew ? '#3fc46e' : '#8b93ab'}">${x.isNew ? 'НОВАЯ' : 'повтор'}</div>`;
+    hydrate(d, x.car);
+    d.onclick = () => openBig(x);
+    minis.appendChild(d);
+  });
+  const have = Object.keys(col).length;
+  document.getElementById('coll').innerHTML = `Коллекция: <b style="color:#fff">${have} из ${CARS.length}</b> машин · открыто карточек: ${counter}<br><span style="font-size:12px">Нажмите на карточку, чтобы рассмотреть её</span>`;
+  summary.classList.remove('hide'); againBtn.classList.remove('hide');
+}
+function openBig(x) {
+  summary.classList.add('hide'); againBtn.classList.add('hide');
+  stack.innerHTML = ''; stack.classList.remove('hide');
+  const s = document.createElement('div'); s.className = 'slot revealed'; s.innerHTML = cardHTML(x.car, x.fin, x.serial); hydrate(s, x.car); stack.appendChild(s);
+  attachTilt(s); state = 'reveal'; cards = [x]; idx = 0; x.el = s;
+  msg.textContent = 'Нажмите, чтобы перевернуть'; msg.style.opacity = 1;
+  nextBtn.textContent = '← Назад'; nextBtn.classList.remove('hide');
+  nextBtn.onclick = () => { stack.classList.add('hide'); nextBtn.classList.add('hide'); msg.style.opacity = 0; summary.classList.remove('hide'); againBtn.classList.remove('hide'); state = 'summary'; restoreNext(); cards = lastCards; };
+}
+let lastCards = [];
+const origNext = nextBtn.onclick;
+function restoreNext() { nextBtn.onclick = origNext; }
+againBtn.onclick = () => {
+  summary.classList.add('hide'); againBtn.classList.add('hide'); stack.classList.add('hide');
+  pack.classList.remove('torn', 'gone'); pack.style.transition = 'none'; pack.style.transform = 'translateY(-110vh)';
+  requestAnimationFrame(() => requestAnimationFrame(() => { pack.style.transition = 'transform .6s cubic-bezier(.2,.8,.2,1)'; pack.style.transform = ''; }));
+  state = 'pack'; msg.textContent = 'Нажмите на пакетик, чтобы открыть'; msg.style.opacity = 1;
+};
+// keep a copy of the pack's cards for "back" from big view
+const _show = showSummary;
+showSummary = function () { lastCards = cards.slice(); _show(); };
+pack.addEventListener('pointermove', e => { const r = pack.getBoundingClientRect(); pack.querySelector('.body').style.setProperty('--px', ((e.clientX - r.left) / r.width * 100).toFixed(0) + '%'); });
+
+document.getElementById('oddsBtn').onclick = () => document.getElementById('odds').classList.remove('hide');
+document.getElementById('oddsClose').onclick = () => document.getElementById('odds').classList.add('hide');
+window.__test = { cards: () => cards, CARS };
+})();
+</script>
+</body>
+</html>
