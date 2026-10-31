@@ -2,93 +2,11 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0f1120">
 <title>Ежедневный вызов</title>
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;800&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#10121f;--panel:#191c2e;--panel2:#22263d;--line:#2d3250;--text:#eef0ff;--muted:#8a90b8;
-  --accent:#ffb84d;--accent2:#ff7a59;--good:#3ddc97;--bad:#ff5a6e;--blue:#4da3ff;
-}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font-family:Rubik,system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
-body{min-height:100vh;min-height:100dvh}
-button{font:inherit;cursor:pointer;border:0;color:inherit}
-.wrap{max-width:480px;margin:0 auto;padding:14px 16px 40px}
-.top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
-.logo{font-weight:800;font-size:20px;letter-spacing:.3px}
-.logo span{color:var(--accent)}
-.acct{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
-.acct b{color:var(--text);font-weight:600}
-.btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#1b1205;font-weight:600;border-radius:14px;padding:14px 22px;font-size:17px;box-shadow:0 6px 24px rgba(255,140,80,.25)}
-.btn:active{transform:scale(.98)}
-.btn.wide{width:100%}
-.ghost{background:var(--panel2);border-radius:12px;padding:8px 14px;font-size:14px;color:var(--text)}
-.ghost:active{background:var(--line)}
-.link{background:none;color:var(--accent);padding:0;font-size:14px;text-decoration:underline}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px;margin-bottom:14px}
-.hero h2{margin:4px 0 6px;font-size:26px;font-weight:800}
-.tag{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);background:rgba(255,184,77,.12);border-radius:8px;padding:4px 8px}
-.muted{color:var(--muted);font-size:14px;line-height:1.45}
-.dots{display:flex;gap:4px;margin:10px 0 14px}
-.dots i{width:22px;height:6px;border-radius:3px;background:var(--line)}
-.dots i.on{background:var(--accent)}
-.row{display:flex;gap:10px;align-items:center}
-.stat{flex:1;background:var(--panel2);border-radius:14px;padding:10px 12px}
-.stat .v{font-size:22px;font-weight:800}
-.stat .l{font-size:12px;color:var(--muted)}
-.banner{background:rgba(77,163,255,.12);border:1px solid rgba(77,163,255,.35);color:#cfe4ff;border-radius:14px;padding:10px 12px;font-size:13px;line-height:1.4;margin-bottom:14px}
-.tabs{display:flex;background:var(--panel2);border-radius:12px;padding:4px;margin-bottom:12px}
-.tabs button{flex:1;background:none;padding:8px;border-radius:9px;font-size:14px;color:var(--muted);font-weight:500}
-.tabs button.on{background:var(--panel);color:var(--text)}
-table{width:100%;border-collapse:collapse;font-size:15px}
-td{padding:9px 4px;border-bottom:1px solid var(--line)}
-tr:last-child td{border-bottom:0}
-tr.me td{color:var(--accent)}
-td.rk{width:28px;color:var(--muted);font-weight:600}
-td.num{text-align:right;font-weight:600;white-space:nowrap}
-.wk{display:flex;gap:2px;justify-content:flex-end}
-.wk span{width:20px;height:20px;border-radius:5px;background:var(--panel2);font-size:9px;display:flex;align-items:center;justify-content:center;color:#1b1205;font-weight:700}
-.empty{text-align:center;padding:18px 0;color:var(--muted);font-size:14px}
-
-/* game */
-#game{display:none}
-.ghead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.counter{text-align:center}
-.counter .v{font-size:40px;font-weight:800;line-height:1}
-.counter .l{font-size:12px;color:var(--muted)}
-.board{position:relative;margin:8px auto 14px;touch-action:none;user-select:none;-webkit-user-select:none}
-.rush{background:#23273f;border-radius:14px;box-shadow:inset 0 0 0 3px #343a5c}
-.rush .cellbg{position:absolute;border-radius:6px;background:#2a2f4b}
-.car{position:absolute;border-radius:10px;box-shadow:inset 0 -4px 0 rgba(0,0,0,.25),0 3px 8px rgba(0,0,0,.35);touch-action:none}
-.car.red{background:linear-gradient(135deg,#ff6b6b,#e0344c)}
-.car::after{content:"";position:absolute;inset:22%;border-radius:6px;background:rgba(255,255,255,.18)}
-.exit{position:absolute;width:10px;background:var(--good);border-radius:0 6px 6px 0;box-shadow:0 0 14px var(--good)}
-.ric{background:#1d2136;border-radius:12px;overflow:hidden}
-.ric .c{position:absolute;background:#262b45;border-radius:3px}
-.wall{position:absolute;background:#c7cdf5;border-radius:2px}
-.center{position:absolute;background:#0f1120;border-radius:6px}
-.target{position:absolute;border-radius:50%}
-.robot{position:absolute;border-radius:50%;transition:left .17s ease-out,top .17s ease-out;box-shadow:inset 0 -4px 0 rgba(0,0,0,.25),0 3px 8px rgba(0,0,0,.4)}
-.robot.sel{outline:3px solid #fff;outline-offset:2px}
-.pad{display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(2,50px);gap:8px;justify-content:center;margin-bottom:10px}
-.pad button{background:var(--panel2);border-radius:12px;font-size:22px}
-.pad button:active{background:var(--line)}
-.tools{display:flex;gap:10px;justify-content:center}
-.hint{text-align:center;font-size:13px;color:var(--muted);margin-bottom:10px;min-height:18px}
-
-/* modal */
-.modal{position:fixed;inset:0;background:rgba(5,6,14,.75);display:none;align-items:flex-end;justify-content:center;z-index:10}
-.modal.on{display:flex}
-.sheet{background:var(--panel);border-radius:22px 22px 0 0;padding:22px 18px 28px;width:100%;max-width:480px}
-@media(min-width:600px){.modal{align-items:center}.sheet{border-radius:22px}}
-.sheet h3{margin:0 0 12px;font-size:22px}
-input{width:100%;font:inherit;font-size:16px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px 14px;color:var(--text);margin-bottom:10px;outline:none}
-input:focus{border-color:var(--accent)}
-.err{color:var(--bad);font-size:14px;min-height:18px;margin-bottom:8px}
-.big{font-size:56px;font-weight:800;text-align:center;line-height:1;margin:6px 0}
-.center-t{text-align:center}
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body>
 <div class="wrap">
@@ -97,25 +15,29 @@ input:focus{border-color:var(--accent)}
     <div class="acct" id="acct"></div>
   </div>
 
-  <div id="home">
-    <div class="banner" id="offline" style="display:none">Онлайн пока не подключён: результаты сохраняются только на этом телефоне. Чтобы появились вход и лидерборд, заполните <b>config.js</b>.</div>
-
+  <section id="vHome">
+    <div class="banner" id="offline" style="display:none">Онлайн не подключён: результаты сохраняются только на этом телефоне.</div>
+    <div id="chestSlot"></div>
     <div class="card hero" id="hero"></div>
-
     <div class="card">
-      <div class="tabs"><button id="tToday" class="on">Сегодня</button><button id="tWeek">Неделя</button></div>
+      <div class="tabs"><button data-t="today" class="on">Сегодня</button><button data-t="week">Неделя</button><button data-t="season">Сезон</button></div>
       <div id="board"></div>
     </div>
-
+    <div class="card" id="feedCard" style="display:none"><h3>Что нового</h3><div class="feed" id="feed"></div></div>
     <div class="card">
-      <div style="font-weight:600;margin-bottom:6px">Правила</div>
-      <div class="muted">Каждый день одна головоломка, одинаковая для всех. Побеждает тот, кто решит её за меньшее число ходов, при равенстве — кто быстрее.<br><br>
-      Считаются <b>все</b> ходы: «отменить» и «сначала» возвращают фигуры, но счётчик не уменьшают. Так что думайте перед ходом.<br><br>
-      Очки за день = 100 × лучший возможный результат ÷ ваши ходы. Решили идеально — 100 очков. Неделя (Пн–Вс) — сумма очков. Сложность растёт к воскресенью.</div>
+      <h3>Как это работает</h3>
+      <div class="muted">Каждый день одна головоломка, одинаковая для всех. Меньше ходов — выше место, при равенстве выше тот, кто быстрее. Считаются <b>все</b> ходы: «отменить» и «сначала» возвращают фигуры, но не уменьшают счётчик.<br><br>
+      <b>Очки</b> = 100 × лучшее возможное ÷ ваши ходы. По воскресеньям — <b>×2</b>.<br>
+      <b>🔥 Серия</b> — дни подряд. За каждые 7 дней — <b>🧊 заморозка</b>, она сама спасёт серию, если пропустите день.<br>
+      <b>🎁 Сундук недели</b> — за 5+ решённых дней. Все 7 — редкий, все 7 и 3 идеальных — легендарный. В сундуках фигурки для коллекции и витрины.<br>
+      <b>👑 Корона</b> — у победителя прошлой недели. <b>Сезон</b> — месяц, победитель получает кубок.</div>
     </div>
-  </div>
+  </section>
 
-  <div id="game">
+  <section id="vCollection" style="display:none"></section>
+  <section id="vProfile" style="display:none"></section>
+
+  <section id="vGame" style="display:none">
     <div class="ghead">
       <button class="ghost" id="back">← Назад</button>
       <div class="counter"><div class="v" id="moves">0</div><div class="l" id="parl">ходов</div></div>
@@ -128,8 +50,14 @@ input:focus{border-color:var(--accent)}
       <button data-d="3">←</button><button data-d="2">↓</button><button data-d="1">→</button>
     </div>
     <div class="tools"><button class="ghost" id="undo">↶ Отменить</button><button class="ghost" id="reset">⟲ Сначала</button></div>
-  </div>
+  </section>
 </div>
+
+<nav class="tabbar" id="tabbar">
+  <button data-v="home" class="on"><span class="i">🏠</span>Главная</button>
+  <button data-v="collection"><span class="i">🎁</span>Коллекция</button>
+  <button data-v="profile"><span class="i">👤</span>Профиль</button>
+</nav>
 
 <div class="modal" id="mAuth"><div class="sheet">
   <div class="tabs"><button id="aIn" class="on">Вход</button><button id="aUp">Регистрация</button></div>
@@ -157,452 +85,33 @@ input:focus{border-color:var(--accent)}
   <div class="tag" id="wTag">Решено</div>
   <div class="big" id="wMoves">0</div>
   <div class="muted" id="wText"></div>
-  <div style="margin:14px 0" id="wSubmit" class="muted"></div>
-  <button class="btn wide" id="wShare">Скопировать результат</button>
-  <div style="margin-top:12px"><button class="link" id="wClose">К таблице</button></div>
+  <div class="news" id="wNews"></div>
+  <div style="margin:10px 0" id="wSubmit" class="muted"></div>
+  <button class="btn wide" id="wMain">Скопировать результат</button>
+  <div style="margin-top:12px"><button class="link" id="wShare" style="margin-right:16px">Скопировать результат</button><button class="link" id="wClose">К таблице</button></div>
 </div></div>
 
-<script src="config.js"></script>
+<div class="modal" id="mSheet"><div class="sheet" id="sheetBody"></div></div>
+
+<div id="mChest">
+  <div class="rays"></div>
+  <canvas id="confetti"></canvas>
+  <div class="ctitle" id="cTitle">Сундук</div>
+  <div class="csub" id="cSub">Нажмите, чтобы открыть</div>
+  <div class="cbox idle" id="cBox"></div>
+  <div class="reveal" id="cReveal"><div class="fig" id="cFig"></div><div class="rl" id="cRl"></div><div class="rn" id="cRn"></div><div class="rs" id="cRs"></div></div>
+  <div class="summary" id="cSum"></div>
+  <div class="tapnext" id="cTap"></div>
+  <div class="flash" id="cFlash"></div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="config.js?v=2"></script>
 <script src="puzzles.js"></script>
+<script src="figures.js?v=2"></script>
+<script src="stats.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-(() => {
-'use strict';
-const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const LS = {
-  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
-};
-
-// ---------- day math (Moscow time, UTC+3, for everyone) ----------
-const MSK = 3 * 3600e3, DAY = 864e5;
-const today = () => Math.floor((Date.now() + MSK) / DAY);
-const weekday = d => (d + 3) % 7; // Mon=0
-const WD = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-const WD_FULL = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье'];
-const LEVEL = ['Разминка', 'Лёгкая', 'Средняя', 'Средняя+', 'Сложная', 'Сложная+', 'Босс недели'];
-const P = window.DAILY_PUZZLES || {start: 0, list: []};
-let D = today();
-const puzzleOf = d => P.list[d - P.start] || null;
-const pts = (par, moves) => Math.round(100 * par / moves);
-function plural(n, a, b, c) { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? b : c; }
-const fmtTime = ms => { const s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
-
-// ---------- Supabase ----------
-const CFG = window.DAILY_CONFIG || {};
-let sb = null, me = null, profile = null;
-if (CFG.supabaseUrl && CFG.supabaseKey && window.supabase) {
-  sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey);
-} else $('offline').style.display = '';
-
-const RU_ERR = [
-  [/invalid login/i, 'Неверная почта или пароль'],
-  [/already registered|already exists/i, 'Эта почта уже зарегистрирована — войдите'],
-  [/at least 6|password should/i, 'Пароль должен быть не короче 6 символов'],
-  [/email not confirmed/i, 'Почта не подтверждена — проверьте письмо'],
-  [/rate limit|too many/i, 'Слишком много попыток, подождите минуту'],
-  [/invalid.*email|email.*invalid/i, 'Проверьте адрес почты'],
-  [/duplicate key.*username|profiles_username/i, 'Этот никнейм уже занят'],
-  [/fetch|network/i, 'Нет связи с сервером'],
-];
-const ruErr = e => { const m = (e && (e.message || e.error_description)) || String(e); for (const [r, t] of RU_ERR) if (r.test(m)) return t; return m; };
-
-async function loadProfile() {
-  if (!sb || !me) { profile = null; return; }
-  const {data} = await sb.from('profiles').select('id,username').eq('id', me.id).maybeSingle();
-  profile = data || null;
-  if (!profile) {
-    const wanted = (me.user_metadata && me.user_metadata.username) || '';
-    if (wanted) {
-      const {data: p, error} = await sb.from('profiles').insert({id: me.id, username: wanted}).select().single();
-      if (!error) profile = p;
-    }
-  }
-  if (!profile) openNick();
-}
-
-async function onAuth(session) {
-  me = session ? session.user : null;
-  await loadProfile();
-  renderAcct();
-  if (profile) await submitPending();
-  renderHero(); loadBoard();
-}
-
-if (sb) {
-  sb.auth.getSession().then(({data}) => onAuth(data.session));
-  sb.auth.onAuthStateChange((ev, session) => {
-    // defer: calling Supabase inside this callback can deadlock
-    if (ev === 'SIGNED_IN' && (!me || me.id !== session.user.id)) setTimeout(() => onAuth(session), 0);
-    if (ev === 'SIGNED_OUT') setTimeout(() => onAuth(null), 0);
-  });
-}
-
-function renderAcct() {
-  const a = $('acct');
-  if (!sb) { a.innerHTML = ''; return; }
-  if (me && profile) a.innerHTML = `<b>${esc(profile.username)}</b><button class="ghost" id="logout">Выйти</button>`;
-  else if (me) a.innerHTML = `<button class="ghost" id="logout">Выйти</button>`;
-  else a.innerHTML = `<button class="ghost" id="login">Войти</button>`;
-  const lo = $('logout'), li = $('login');
-  if (lo) lo.onclick = () => sb.auth.signOut();
-  if (li) li.onclick = () => openAuth(false);
-}
-
-// auth modal
-let signUp = false;
-function openAuth(up) { setMode(up); $('aErr').textContent = ''; $('mAuth').classList.add('on'); }
-function setMode(up) {
-  signUp = up;
-  $('aIn').classList.toggle('on', !up); $('aUp').classList.toggle('on', up);
-  $('aNick').style.display = up ? '' : 'none'; $('aNick').required = up;
-  $('aGo').textContent = up ? 'Создать аккаунт' : 'Войти';
-  $('aPass').autocomplete = up ? 'new-password' : 'current-password';
-}
-$('aIn').onclick = () => setMode(false); $('aUp').onclick = () => setMode(true);
-$('aClose').onclick = () => $('mAuth').classList.remove('on');
-$('fAuth').onsubmit = async e => {
-  e.preventDefault();
-  const email = $('aEmail').value.trim(), password = $('aPass').value, nick = $('aNick').value.trim();
-  $('aErr').textContent = ''; $('aGo').disabled = true;
-  try {
-    if (signUp) {
-      if (nick.length < 2) throw new Error('Никнейм — от 2 символов');
-      const {data, error} = await sb.auth.signUp({email, password, options: {data: {username: nick}}});
-      if (error) throw error;
-      if (!data.session) { $('aErr').style.color = 'var(--good)'; $('aErr').textContent = 'Готово! Подтвердите почту по ссылке из письма, затем войдите.'; return; }
-    } else {
-      const {error} = await sb.auth.signInWithPassword({email, password});
-      if (error) throw error;
-    }
-    $('mAuth').classList.remove('on');
-  } catch (err) { $('aErr').style.color = ''; $('aErr').textContent = ruErr(err); }
-  finally { $('aGo').disabled = false; }
-};
-
-function openNick() { $('nErr').textContent = ''; $('mNick').classList.add('on'); }
-$('fNick').onsubmit = async e => {
-  e.preventDefault();
-  const username = $('nNick').value.trim();
-  const {data, error} = await sb.from('profiles').upsert({id: me.id, username}).select().single();
-  if (error) { $('nErr').textContent = ruErr(error); return; }
-  profile = data; $('mNick').classList.remove('on');
-  renderAcct(); await submitPending(); loadBoard();
-};
-
-// ---------- local progress ----------
-const progKey = d => 'daily-prog-' + d;
-function getProg(d) { return LS.get(progKey(d), null); }
-function setProg(d, p) { LS.set(progKey(d), p); }
-
-async function submitPending() {
-  if (!sb || !me || !profile) return;
-  for (const d of [D - 1, D]) {
-    const p = getProg(d);
-    if (!p || !p.done || p.sent) continue;
-    const {error} = await sb.from('results').insert({user_id: me.id, day: d, moves: p.moves, par: p.par, duration_ms: p.ms});
-    if (!error || error.code === '23505') { p.sent = true; setProg(d, p); }
-    else p.sendErr = ruErr(error);
-  }
-}
-
-// ---------- home ----------
-function renderHero() {
-  D = today();
-  const pz = puzzleOf(D), wd = weekday(D);
-  const dots = WD.map((_, i) => `<i class="${i <= wd ? 'on' : ''}"></i>`).join('');
-  if (!pz) { $('hero').innerHTML = `<span class="tag">Вызов</span><h2>Головоломки закончились</h2><div class="muted">Нужно сгенерировать новый набор.</div>`; return; }
-  const name = pz.t === 'rush' ? 'Пробка' : 'Рикошет';
-  const desc = pz.t === 'rush'
-    ? 'Двигайте машинки вдоль их направления и выведите красную к зелёному выезду справа.'
-    : 'Роботы катятся до упора — до стены или другого робота. Остановите красного робота на мишени.';
-  const p = getProg(D) || {};
-  const done = p.done;
-  const nextIn = (D + 1) * DAY - MSK - Date.now();
-  const h = Math.floor(nextIn / 3600e3), m = Math.floor(nextIn % 3600e3 / 60e3);
-  $('hero').innerHTML = `
-    <span class="tag">№${D - P.start + 1} · ${WD_FULL[wd]} · ${LEVEL[wd]}</span>
-    <h2>${pz.t === 'rush' ? '🚗' : '🤖'} ${name}</h2>
-    <div class="muted">${desc}</div>
-    <div class="dots">${dots}</div>
-    <div class="row" style="margin-bottom:14px">
-      <div class="stat"><div class="v">${pz.par}</div><div class="l">лучшее возможное</div></div>
-      <div class="stat"><div class="v">${done ? p.moves : (p.moves || '—')}</div><div class="l">${done ? 'ваши ходы' : p.moves ? 'ходов сделано' : 'вы ещё не играли'}</div></div>
-    </div>
-    ${done
-      ? `<div class="muted">Решено: <b style="color:var(--text)">${pts(pz.par, p.moves)} очков</b>. Следующая головоломка через ${h} ч ${m} мин.</div>
-         ${sb && !me ? '<div style="margin-top:10px"><button class="btn wide" id="heroLogin">Войти и отправить результат</button></div>' : ''}
-         ${p.sendErr ? `<div class="err" style="margin-top:8px">Не отправилось: ${esc(p.sendErr)}</div>` : ''}`
-      : `<button class="btn wide" id="play">${p.moves ? 'Продолжить' : 'Играть'}</button>`}`;
-  const pl = $('play'); if (pl) pl.onclick = startGame;
-  const hl = $('heroLogin'); if (hl) hl.onclick = () => openAuth(false);
-}
-
-let tab = 'today';
-$('tToday').onclick = () => { tab = 'today'; $('tToday').classList.add('on'); $('tWeek').classList.remove('on'); loadBoard(); };
-$('tWeek').onclick = () => { tab = 'week'; $('tWeek').classList.add('on'); $('tToday').classList.remove('on'); loadBoard(); };
-
-async function loadBoard() {
-  const el = $('board');
-  if (!sb) { el.innerHTML = `<div class="empty">Лидерборд появится после подключения онлайна.</div>`; return; }
-  if (!me) { el.innerHTML = `<div class="empty">Войдите, чтобы видеть результаты друзей.<br><br><button class="btn" id="bLogin">Войти</button></div>`; $('bLogin').onclick = () => openAuth(false); return; }
-  el.innerHTML = `<div class="empty">Загрузка…</div>`;
-  const myTab = tab;
-  try {
-    if (myTab === 'today') {
-      const {data, error} = await sb.from('results').select('user_id,moves,duration_ms,points,profiles(username)').eq('day', D).order('moves').order('duration_ms').limit(100);
-      if (error) throw error;
-      if (tab !== myTab) return;
-      data.sort((a, b) => a.moves - b.moves || a.duration_ms - b.duration_ms);
-      if (!data.length) { el.innerHTML = `<div class="empty">Сегодня ещё никто не решил. Будьте первым!</div>`; return; }
-      el.innerHTML = `<table>${data.map((r, i) => `<tr class="${r.user_id === me.id ? 'me' : ''}">
-        <td class="rk">${i + 1}</td><td>${esc(r.profiles ? r.profiles.username : '?')}</td>
-        <td class="num">${r.moves} ${plural(r.moves, 'ход', 'хода', 'ходов')}</td>
-        <td class="num muted" style="width:56px">${fmtTime(r.duration_ms)}</td></tr>`).join('')}</table>`;
-    } else {
-      const ws = D - weekday(D);
-      const {data, error} = await sb.from('results').select('user_id,day,points,profiles(username)').gte('day', ws).lte('day', ws + 6).limit(1000);
-      if (error) throw error;
-      if (tab !== myTab) return;
-      const by = new Map();
-      for (const r of data) {
-        if (!by.has(r.user_id)) by.set(r.user_id, {name: r.profiles ? r.profiles.username : '?', id: r.user_id, total: 0, days: Array(7).fill(null)});
-        const u = by.get(r.user_id); u.total += r.points; u.days[r.day - ws] = r.points;
-      }
-      const list = [...by.values()].sort((a, b) => b.total - a.total);
-      if (!list.length) { el.innerHTML = `<div class="empty">На этой неделе результатов пока нет.</div>`; return; }
-      const cell = v => v == null ? `<span></span>` : `<span style="background:hsl(${Math.round(v * 1.2)},75%,58%)">${v}</span>`;
-      el.innerHTML = `<div class="wk" style="margin-bottom:6px;padding-right:56px">${WD.map(w => `<span style="background:none;color:var(--muted)">${w}</span>`).join('')}</div>
-        <table>${list.map((u, i) => `<tr class="${u.id === me.id ? 'me' : ''}"><td class="rk">${i + 1}</td><td>${esc(u.name)}</td>
-        <td><div class="wk">${u.days.map(cell).join('')}</div></td><td class="num" style="width:50px">${u.total}</td></tr>`).join('')}</table>`;
-    }
-  } catch (e) { el.innerHTML = `<div class="empty">Не удалось загрузить: ${esc(ruErr(e))}</div>`; }
-}
-
-// ---------- game ----------
-let G = null; // {d, pz, prog, state, history}
-let timerInt = null;
-
-function startGame() {
-  D = today();
-  const pz = puzzleOf(D); if (!pz) return;
-  let prog = getProg(D);
-  if (!prog) prog = {moves: 0, ms: 0, par: pz.par, state: null, hist: [], done: false};
-  G = {d: D, pz, prog, t0: Date.now()};
-  $('home').style.display = 'none'; $('game').style.display = 'block';
-  window.scrollTo(0, 0);
-  if (pz.t === 'rush') rushInit(); else ricInit();
-  updCounter();
-  clearInterval(timerInt);
-  timerInt = setInterval(() => { $('timer').textContent = fmtTime(G.prog.ms + Date.now() - G.t0); }, 500);
-}
-function saveTime() { if (G) { G.prog.ms += Date.now() - G.t0; G.t0 = Date.now(); setProg(G.d, G.prog); } }
-document.addEventListener('visibilitychange', () => { if (!G) return; if (document.hidden) saveTime(); else G.t0 = Date.now(); });
-function leaveGame() {
-  if (G) saveTime();
-  clearInterval(timerInt); G = null;
-  $('game').style.display = 'none'; $('home').style.display = 'block';
-  renderHero(); loadBoard();
-}
-$('back').onclick = leaveGame;
-function updCounter() {
-  $('moves').textContent = G.prog.moves;
-  $('parl').textContent = plural(G.prog.moves, 'ход', 'хода', 'ходов') + ' · лучшее ' + G.pz.par;
-}
-function commitMove(newState) {
-  G.prog.hist.push(G.prog.state);
-  G.prog.state = newState;
-  G.prog.moves++;
-  saveTime(); updCounter();
-}
-$('undo').onclick = () => {
-  if (!G || !G.prog.hist.length) return;
-  G.prog.state = G.prog.hist.pop(); setProg(G.d, G.prog); G.render();
-};
-$('reset').onclick = () => {
-  if (!G || !G.prog.hist.length) return;
-  G.prog.state = G.initial(); G.prog.hist = []; setProg(G.d, G.prog); G.render();
-};
-
-async function win() {
-  saveTime();
-  clearInterval(timerInt);
-  const p = G.prog; p.done = true; p.hist = []; setProg(G.d, p);
-  const score = pts(G.pz.par, p.moves);
-  $('wMoves').textContent = p.moves;
-  $('wTag').textContent = p.moves === G.pz.par ? 'Идеально!' : 'Решено';
-  $('wText').innerHTML = `${plural(p.moves, 'ход', 'хода', 'ходов')} за ${fmtTime(p.ms)} · лучшее возможное ${G.pz.par}<br><b style="color:var(--accent);font-size:20px">${score} очков</b>`;
-  const d = G.d, pz = G.pz;
-  $('wSubmit').textContent = sb ? (me ? 'Отправляем результат…' : 'Войдите, чтобы результат попал в таблицу.') : '';
-  $('mWin').classList.add('on');
-  $('wShare').onclick = async () => {
-    const txt = `Ежедневный вызов №${d - P.start + 1} ${pz.t === 'rush' ? '🚗 Пробка' : '🤖 Рикошет'}\n${p.moves} ${plural(p.moves, 'ход', 'хода', 'ходов')} (лучшее ${pz.par}) · ${score} очков${p.moves === pz.par ? ' ⭐' : ''}\n${location.href}`;
-    try { await navigator.clipboard.writeText(txt); $('wShare').textContent = 'Скопировано!'; } catch (e) { $('wShare').textContent = 'Не удалось скопировать'; }
-    setTimeout(() => $('wShare').textContent = 'Скопировать результат', 1800);
-  };
-  if (sb && me && profile) {
-    await submitPending();
-    const pp = getProg(d);
-    $('wSubmit').textContent = pp.sent ? 'Результат в таблице ✓' : 'Не удалось отправить: ' + (pp.sendErr || '');
-  }
-}
-$('wClose').onclick = () => { $('mWin').classList.remove('on'); leaveGame(); if (sb && !me) openAuth(false); };
-
-// ---------- Rush hour ----------
-const CAR_COLORS = ['#4da3ff', '#ffc93c', '#3ddc97', '#b98cff', '#ff9a4d', '#5ce1e6', '#f78fb3', '#a3e635', '#94a3b8', '#fbbf24', '#60a5fa', '#c084fc', '#34d399'];
-function rushInit() {
-  const cars = G.pz.cars; // [h,len,line,pos]
-  G.initial = () => cars.map(c => c[3]);
-  if (!G.prog.state) G.prog.state = G.initial();
-  $('pad').style.display = 'none';
-  $('ghint').textContent = 'Тяните машинку пальцем вдоль её направления';
-  const el = $('gb'); el.className = 'board rush'; el.innerHTML = '';
-  const size = Math.min(window.innerWidth - 32, 420), pad = 8, cs = (size - pad * 2) / 6, gap = 4;
-  el.style.width = el.style.height = size + 'px';
-  for (let i = 0; i < 36; i++) {
-    const d = document.createElement('div'); d.className = 'cellbg';
-    Object.assign(d.style, {left: pad + (i % 6) * cs + 2 + 'px', top: pad + Math.floor(i / 6) * cs + 2 + 'px', width: cs - 4 + 'px', height: cs - 4 + 'px'});
-    el.appendChild(d);
-  }
-  const ex = document.createElement('div'); ex.className = 'exit';
-  Object.assign(ex.style, {left: size - 4 + 'px', top: pad + 2 * cs + 6 + 'px', height: cs - 12 + 'px'}); el.appendChild(ex);
-  const els = cars.map((c, i) => {
-    const d = document.createElement('div'); d.className = 'car' + (i === 0 ? ' red' : '');
-    if (i) d.style.background = CAR_COLORS[(i - 1) % CAR_COLORS.length];
-    el.appendChild(d); return d;
-  });
-  const place = (i, p) => {
-    const [h, len, line] = cars[i];
-    const x = h ? p : line, y = h ? line : p;
-    Object.assign(els[i].style, {left: pad + x * cs + gap / 2 + 'px', top: pad + y * cs + gap / 2 + 'px', width: (h ? len : 1) * cs - gap + 'px', height: (h ? 1 : len) * cs - gap + 'px'});
-  };
-  G.render = () => G.prog.state.forEach((p, i) => place(i, p));
-  G.render();
-  const occ = (st, skip) => {
-    const g = new Uint8Array(36);
-    st.forEach((p, i) => { if (i === skip) return; const [h, len, line] = cars[i]; for (let k = 0; k < len; k++) g[h ? line * 6 + p + k : (p + k) * 6 + line] = 1; });
-    return g;
-  };
-  els.forEach((d, i) => {
-    d.addEventListener('pointerdown', e => {
-      if (!G || G.prog.done) return;
-      e.preventDefault();
-      const [h, len, line] = cars[i], st = G.prog.state, p0 = st[i], g = occ(st, i);
-      const at = q => h ? line * 6 + q : q * 6 + line;
-      let lo = p0, hi = p0;
-      while (lo - 1 >= 0 && !g[at(lo - 1)]) lo--;
-      while (hi + len < 6 && !g[at(hi + len)]) hi++;
-      const s0 = h ? e.clientX : e.clientY;
-      let cur = p0;
-      d.setPointerCapture(e.pointerId);
-      d.style.zIndex = 2;
-      const move = ev => {
-        const delta = ((h ? ev.clientX : ev.clientY) - s0) / cs;
-        cur = Math.max(lo, Math.min(hi, p0 + delta));
-        const x = h ? cur : line, y = h ? line : cur;
-        d.style.left = pad + x * cs + gap / 2 + 'px'; d.style.top = pad + y * cs + gap / 2 + 'px';
-      };
-      const up = () => {
-        d.removeEventListener('pointermove', move); d.removeEventListener('pointerup', up); d.removeEventListener('pointercancel', up);
-        d.style.zIndex = '';
-        const np = Math.round(cur);
-        if (np !== p0) {
-          const ns = st.slice(); ns[i] = np; commitMove(ns);
-        }
-        G.render();
-        if (G.prog.state[0] === 4) {
-          els[0].style.transition = 'left .35s ease-in'; els[0].style.left = size + 'px';
-          setTimeout(win, 380);
-        }
-      };
-      d.addEventListener('pointermove', move); d.addEventListener('pointerup', up); d.addEventListener('pointercancel', up);
-    });
-  });
-}
-
-// ---------- Ricochet ----------
-const ROBOT_COLORS = ['#ff5a6e', '#4da3ff', '#3ddc97', '#ffc93c'];
-const STEP = [[-1, 0, 1], [0, 1, 2], [1, 0, 4], [0, -1, 8]];
-function ricInit() {
-  const pz = G.pz, w = Array.from(pz.walls, ch => parseInt(ch, 16));
-  G.initial = () => pz.robots.slice();
-  if (!G.prog.state) G.prog.state = G.initial();
-  $('pad').style.display = '';
-  $('ghint').textContent = 'Проведите по роботу в нужную сторону — или выберите его и жмите стрелки';
-  const el = $('gb'); el.className = 'board ric'; el.innerHTML = '';
-  const size = Math.min(window.innerWidth - 32, 420), cs = size / 8, wt = Math.max(4, cs * .09);
-  el.style.width = el.style.height = size + 'px';
-  const CENTER = [27, 28, 35, 36];
-  for (let i = 0; i < 64; i++) {
-    if (CENTER.includes(i)) continue;
-    const d = document.createElement('div'); d.className = 'c';
-    Object.assign(d.style, {left: (i % 8) * cs + 1.5 + 'px', top: Math.floor(i / 8) * cs + 1.5 + 'px', width: cs - 3 + 'px', height: cs - 3 + 'px'});
-    el.appendChild(d);
-  }
-  const cb = document.createElement('div'); cb.className = 'center';
-  Object.assign(cb.style, {left: 3 * cs + 'px', top: 3 * cs + 'px', width: 2 * cs + 'px', height: 2 * cs + 'px'}); el.appendChild(cb);
-  const tg = document.createElement('div'); tg.className = 'target';
-  Object.assign(tg.style, {left: (pz.target % 8) * cs + cs * .18 + 'px', top: Math.floor(pz.target / 8) * cs + cs * .18 + 'px', width: cs * .64 + 'px', height: cs * .64 + 'px', border: `3px dashed ${ROBOT_COLORS[0]}`, background: 'rgba(255,90,110,.15)'});
-  el.appendChild(tg);
-  for (let i = 0; i < 64; i++) {
-    const r = Math.floor(i / 8), c = i % 8;
-    if ((w[i] & 2) && c < 7) { const d = document.createElement('div'); d.className = 'wall'; Object.assign(d.style, {left: (c + 1) * cs - wt / 2 + 'px', top: r * cs - wt / 2 + 'px', width: wt + 'px', height: cs + wt + 'px'}); el.appendChild(d); }
-    if ((w[i] & 4) && r < 7) { const d = document.createElement('div'); d.className = 'wall'; Object.assign(d.style, {left: c * cs - wt / 2 + 'px', top: (r + 1) * cs - wt / 2 + 'px', width: cs + wt + 'px', height: wt + 'px'}); el.appendChild(d); }
-  }
-  let sel = 0;
-  const robs = ROBOT_COLORS.map((col, i) => {
-    const d = document.createElement('div'); d.className = 'robot'; d.style.background = col;
-    d.style.width = d.style.height = cs * .72 + 'px';
-    el.appendChild(d); return d;
-  });
-  G.render = () => {
-    G.prog.state.forEach((cell, i) => {
-      robs[i].style.left = (cell % 8) * cs + cs * .14 + 'px'; robs[i].style.top = Math.floor(cell / 8) * cs + cs * .14 + 'px';
-      robs[i].classList.toggle('sel', i === sel);
-    });
-  };
-  G.render();
-  const slide = (st, i, d) => {
-    let c = st[i]; const [dr, dc, bit] = STEP[d];
-    for (;;) { if (w[c] & bit) break; const n = c + dr * 8 + dc; if (st.includes(n)) break; c = n; }
-    return c;
-  };
-  let busy = false;
-  const doMove = (i, d) => {
-    if (busy || !G || G.prog.done) return;
-    const st = G.prog.state, nc = slide(st, i, d);
-    sel = i;
-    if (nc === st[i]) { G.render(); return; }
-    const ns = st.slice(); ns[i] = nc; commitMove(ns); G.render();
-    if (i === 0 && nc === pz.target) { busy = true; setTimeout(() => { busy = false; win(); }, 300); }
-  };
-  // swipe on board
-  let sw = null;
-  el.onpointerdown = e => {
-    const rect = el.getBoundingClientRect();
-    const cell = Math.floor((e.clientY - rect.top) / cs) * 8 + Math.floor((e.clientX - rect.left) / cs);
-    const hit = G.prog.state.indexOf(cell);
-    sw = {x: e.clientX, y: e.clientY, robot: hit >= 0 ? hit : sel};
-    if (hit >= 0) { sel = hit; G.render(); }
-    try { el.setPointerCapture(e.pointerId); } catch (_) {}
-  };
-  el.onpointerup = e => {
-    if (!sw) return;
-    const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
-    if (Math.max(Math.abs(dx), Math.abs(dy)) > 18) doMove(sw.robot, Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0));
-    sw = null;
-  };
-  el.onpointercancel = () => sw = null;
-  document.querySelectorAll('#pad button').forEach(b => b.onclick = () => doMove(sel, +b.dataset.d));
-  G.keys = e => { const m = {ArrowUp: 0, ArrowRight: 1, ArrowDown: 2, ArrowLeft: 3}[e.key]; if (m != null) { e.preventDefault(); doMove(sel, m); } if ('1234'.includes(e.key)) { sel = +e.key - 1; G.render(); } };
-}
-addEventListener('keydown', e => { if (G && G.keys) G.keys(e); });
-
-// ---------- boot ----------
-renderHero(); renderAcct(); loadBoard();
-setInterval(() => { if (!G && today() !== D) { renderHero(); loadBoard(); } }, 30000);
-})();
-</script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
